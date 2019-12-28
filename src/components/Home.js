@@ -140,13 +140,22 @@
      }
    }
 
-   const onChangeServer = (s) => {
+   const onChangeServer = async (s) => {
      setServer(s)
-     if (s.includes("testnet")) {
-       setVer("testnet04")
-     } else {
-       setVer("mainnet01")
+     try {
+       const res = await fetch(`https://${s}/info`)
+       const ver = await res.json()
+       setVer(ver["nodeVersion"])
+     } catch (e) {
+       setVer("not a chainweb node")
      }
+
+    // console.log(await res.json())
+     // if (s.includes("testnet")) {
+     //   setVer("testnet04")
+     // } else {
+     //   setVer("mainnet01")
+     // }
    }
 
    const generateAccount = () => {
@@ -364,7 +373,6 @@
                          caps.splice(i,1)
                          setCaps([...caps])
                        }}
-                       disabled={v.includes("GAS")}
                        />
                      }
                   />
