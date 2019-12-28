@@ -26,6 +26,7 @@
    const [ksName, setKsName] = useState("");
    const [res, setRes] = useState("");
    const [mess, setMess] = useState("")
+   const [loading, setLoading] = useState(false);
    const [bootstraps, setBootstraps] = useState(
      [
         { key: '0', value: 'us-e1.chainweb.com', text: 'us-e1.chainweb.com' },
@@ -56,7 +57,8 @@
     }
 
   const showCmd = () => {
-    if (pubKey !== "" && privKey !== "") {
+    try {
+    if (is_hexadecimal(pubKey) && checkKey(pubKey) && is_hexadecimal(privKey) && checkKey(privKey)) {
       return (
         JSON.stringify(Pact.api.prepareExecCmd(
           [{publicKey: pubKey, secretKey: privKey, clist: formatCaps(caps)}],
@@ -66,13 +68,17 @@
           Pact.lang.mkMeta(acct, chainId, gasPrice, gasLimit, creationTime, ttl)
         ))
       )
+    }} catch(e){
+      console.log(e)
+      return "Invlaid keypair format"
     }
-    return "Enter a valid keypair to preview JSON (or click generate)"
+    return "Enter a valid keypair to preview JSON request (or click generate)"
 
   }
 
    const localCall = async () => {
      try {
+       setLoading(true);
        const envData = ksName !== "" ? {[ksName]: {"pred": pred, "keys": envKeys}} : {}
        const cmd = await Pact.fetch.local({
          pactCode: pactCode,
@@ -81,6 +87,7 @@
          envData: envData,
          networkId: ver,
        }, host)
+       setLoading(false);
        console.log(cmd)
        if (cmd.status === "failure") {
          setRes("TX preview failed:")
@@ -104,6 +111,21 @@
 
       // setRes(cmd)
    }
+
+   const is_hexadecimal = (str) => {
+    const regexp = /^[0-9a-fA-F]+$/;
+    if (regexp.test(str)) return true;
+    else return false;
+  }
+
+    const checkKey = (key) => {
+        if (key.length !== 64) {
+            throw "Key does not have length of 64";
+        } else if (!is_hexadecimal(key)){
+            throw "Key is not hex string";
+        }
+        return true;
+    }
 
    const preGen = () => {
      const kp = Pact.crypto.genKeyPair;
@@ -157,14 +179,74 @@
    return (
      <div>
       <Grid columns={2}
-        verticalAlign='top'
-        // verticalAlign='middle'
+        // verticalAlign='top'
+        verticalAlign='middle'
         >
-        <Grid.Column style={{backgroundColor: "grey"}}>
+        <Grid.Column>
+        <div
+          style={{overflow: "auto",
+          height: window.innerHeight}}
+        >
+        <Grid>
+          <Grid.Column textAlign="center">
+            <img src="https://explorer.chainweb.com/static/1lv9xhxyhlqc262kffl55w08ms1cvxsnrv49zhvm0b799dsi0v0i-kadena-k-logo.png" style={{height:70, marginTop: 50}}/>
+            <Header as="h6" style={{color:'black', fontWeight: 'bold', fontSize: 40, marginTop: 20}}>
+              Command Preview
+            </Header>
+            <div style={{margin: 10}}>
+            <Header as="h1" style={{color:'black',  fontSize: 15}}>
+              <code>{showCmd()}</code>
+            </Header>
+            </div>
+            <Header as="h6" style={{color:'black', fontWeight: 'bold', fontSize: 20, marginBottom: 10}}>
+              API Host
+            </Header>
+            <div>
+              <code>{host + "/api/v1/local"}</code>
+            </div>
+            <Button
+                style={{
+                  backgroundColor: "#B54FA3",
+                  color: "white",
+                  marginBottom: 10,
+                  marginTop: 20,
+                  width: 340,
+                  }}
+                loading={loading}
+                onClick={() => localCall()}
+                disabled={(chainId === "<CHAIN_ID>" || pactCode === "" || privKey === "" || pubKey === "")}
+              >
+              Submit Transaction
+            </Button>
+            {(res === "") ? <div> </div> :
+              <div style={{ margin: 10, marginRight: 20, marginBottom: 50}}>
+                 <Message style={{overflow: "auto", margin: "0 auto"}}>
+                   <Message.Header >Your Local Request Response:</Message.Header>
+                   <p style={{fontSize: "40px"}}>
+                     {res}
+                  </p>
+                  <p style={{fontSize: "30px"}}>
+                     {mess}
+                   </p>
+                 </Message>
+              </div>
+            }
+          </Grid.Column>
+        </Grid>
+        </div>
+        </Grid.Column>
+
+
+
+        <Grid.Column style={{backgroundColor: "#a885a4"}}>
+        <div
+          style={{overflow: "auto",
+          height: window.innerHeight + 50}}
+        >
         <Form>
-        <h3>
+        <Header block as="h6" style={{color:'black', fontWeight: 'bold', fontSize: 20, marginTop: 30, textAlign: 'center'}}>
           Pact Code to execute
-        </h3>
+        </Header>
         <Form.Field  style={{width:"240px", margin: "0 auto", marginTop: "10px"}}>
           <label>Pact Code
             <Popup
@@ -184,9 +266,9 @@
             onChange={(e) => setPactCode(e.target.value)}
           />
         </Form.Field>
-        <h3>
+        <Header block as="h6" style={{color:'black', fontWeight: 'bold', fontSize: 20, marginTop: 30,textAlign: 'center'}}>
           Signing
-        </h3>
+        </Header>
         <Form.Field style={{width:"240px", margin: "0 auto", marginTop: "10px"}}>
           <label>Account Name
             <Popup
@@ -249,7 +331,7 @@
                   }}
                 onClick={() => generateAccount()}
               >
-              Generate (sig not required)
+              Generate (tx sig not required)
             </Button>
           </Form.Field>
 
@@ -308,9 +390,9 @@
                  }
               />
             </Form.Field>
-            <h3>
+            <Header block as="h6" style={{color:'black', fontWeight: 'bold', fontSize: 20, marginTop: 30, textAlign: 'center'}}>
               Network
-            </h3>
+            </Header>
             <Form.Field style={{width:"240px", margin: "0 auto", marginTop: "10px"}}>
               <label>Server
                 <Popup
@@ -375,9 +457,9 @@
                 // onChange={(e) => setVer(e.target.value)}
               />
             </Form.Field>
-            <h3>
+            <Header block as="h6" style={{color:'black', fontWeight: 'bold', fontSize: 20, marginTop: 30, textAlign: 'center'}}>
               Meta Data
-            </h3>
+            </Header>
             <Form.Field style={{width:"240px", margin: "0 auto", marginTop: "10px"}}>
               <label>Chain ID
                 <Popup
@@ -481,9 +563,9 @@
                 onChange={(e) => setGasLimit(e.target.value)}
               />
             </Form.Field>
-            <h3>
+            <Header block as="h6" style={{color:'black', fontWeight: 'bold', fontSize: 20, marginTop: 30, textAlign: 'center'}}>
               Env Data (Advanced)
-            </h3>
+            </Header>
             <Form.Field style={{width:"240px", margin: "0 auto", marginTop: "10px"}}>
               <label>Keyset Name
                 <Popup
@@ -562,7 +644,7 @@
                   placeholder='Public Key'
                   icon="key"
                   iconPosition="left"
-                  style={{width: "340px", marginTop: 5}}
+                  style={{width: "340px", marginTop: 5, marginBottom: 20}}
                   value={tempKey}
                   // onChange={(e) => setEnvKeys([...envKeys, e.target.value])}
                   onChange={(e) => setTempKey(e.target.value)}
@@ -573,49 +655,13 @@
                        setEnvKeys([...envKeys, tempKey])
                        setTempKey("")
                      }}
-                     // disabled={isValidCap(tempCap)}
+                     disabled={!(is_hexadecimal(tempKey) && checkKey(tempKey))}
                      />
                   }
                 />
               </Form.Field>
       </Form>
-
-        </Grid.Column>
-        <Grid.Column>
-        <div style={{marginTop: 70}}>
-
-        {showCmd()}
-
-
         </div>
-        <div>
-          {host + "/api/v1/local"}
-        </div>
-        <Button
-            style={{
-              backgroundColor: "#B54FA3",
-              color: "white",
-              marginBottom: 10,
-              marginTop: 20,
-              width: 340,
-              }}
-            onClick={() => localCall()}
-          >
-          Submit Transaction
-        </Button>
-        {(res === "") ? <div> </div> :
-          <div style={{ margin: 10, marginRight: 20}}>
-             <Message style={{overflow: "auto", margin: "0 auto"}}>
-               <Message.Header >Your Local Request Response:</Message.Header>
-               <p style={{fontSize: "40px"}}>
-                 {res}
-              </p>
-              <p style={{fontSize: "30px"}}>
-                 {mess}
-               </p>
-             </Message>
-          </div>
-        }
         </Grid.Column>
       </Grid>
      </div>
