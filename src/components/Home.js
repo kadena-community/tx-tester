@@ -2,6 +2,8 @@
  import { Button, Grid, Input, Icon, Form, List, Modal, Header, Message, Popup, Select } from 'semantic-ui-react';
  import Pact from 'pact-lang-api'
 
+ const savedNodes = localStorage.getItem('nodes');
+
  const Home = () => {
 
    const createTime = () => Math.round((new Date).getTime()/1000)-15;
@@ -15,10 +17,10 @@
    const [pactCode, setPactCode] = useState("");
    const [pubKey, setPubKey] = useState("");
    const [privKey, setPrivKey] = useState("");
-   const [chainId, setChainId] = useState("<CHAIN_ID>");
+   const [chainId, setChainId] = useState("");
    const [creationTime, setCreationTime] = useState(createTime());
    const [ttl, setTtl] = useState(28800);
-   const [gasPrice, setGasPrice] = useState(0.000001);
+   const [gasPrice, setGasPrice] = useState(0.00001);
    const [gasLimit, setGasLimit] = useState(1500);
    const [tempKey, setTempKey] = useState("")
    const [envKeys, setEnvKeys] = useState([]);
@@ -28,7 +30,7 @@
    const [mess, setMess] = useState("")
    const [loading, setLoading] = useState(false);
    const [bootstraps, setBootstraps] = useState(
-     [
+     (savedNodes === null ? [
         { key: '0', value: 'us-e1.chainweb.com', text: 'us-e1.chainweb.com' },
         { key: '1', value: 'us-e2.chainweb.com', text: 'us-e2.chainweb.com' },
         { key: '2', value: 'us-e3.chainweb.com', text: 'us-e3.chainweb.com' },
@@ -41,7 +43,20 @@
         { key: '9', value: 'jp1.chainweb.com', text: 'jp1.chainweb.com' },
         { key: '10', value: 'jp2.chainweb.com', text: 'jp2.chainweb.com' },
         { key: '11', value: 'jp3.chainweb.com', text: 'jp3.chainweb.com' },
-      ]
+      ] : [
+         { key: '0', value: 'us-e1.chainweb.com', text: 'us-e1.chainweb.com' },
+         { key: '1', value: 'us-e2.chainweb.com', text: 'us-e2.chainweb.com' },
+         { key: '2', value: 'us-e3.chainweb.com', text: 'us-e3.chainweb.com' },
+         { key: '3', value: 'us-w1.chainweb.com', text: 'us-w1.chainweb.com' },
+         { key: '4', value: 'us-w2.chainweb.com', text: 'us-w2.chainweb.com' },
+         { key: '5', value: 'us-w3.chainweb.com', text: 'us-w3.chainweb.com' },
+         { key: '6', value: 'fr1.chainweb.com', text: 'fr1.chainweb.com' },
+         { key: '7', value: 'fr2.chainweb.com', text: 'fr2.chainweb.com' },
+         { key: '8', value: 'fr3.chainweb.com', text: 'fr3.chainweb.com' },
+         { key: '9', value: 'jp1.chainweb.com', text: 'jp1.chainweb.com' },
+         { key: '10', value: 'jp2.chainweb.com', text: 'jp2.chainweb.com' },
+         { key: '11', value: 'jp3.chainweb.com', text: 'jp3.chainweb.com' },
+       ].concat(JSON.parse(savedNodes)))
    );
 
    const host = `https://${server}/chainweb/0.0/${ver}/chain/${chainId}/pact`
@@ -55,6 +70,15 @@
       })
       return arr;
     }
+
+  const saveNode = async (url) => {
+     const nodes = await localStorage.getItem('nodes');
+     if (nodes === null) {
+       localStorage.setItem('nodes', JSON.stringify([url]))
+     } else {
+       localStorage.setItem('nodes', JSON.stringify(JSON.parse(nodes).concat([url])));
+     }
+  }
 
   const showCmd = () => {
     try {
@@ -101,15 +125,12 @@
        if (pactCode === "") {
          setMess("Enter some Pact code")
        }
-       else if (chainId === "<CHAIN_ID>") {
+       else if (chainId === "") {
          setMess("Set Chain ID")
        } else {
          setMess(e.message)
        }
      }
-
-
-      // setRes(cmd)
    }
 
    const is_hexadecimal = (str) => {
@@ -120,9 +141,9 @@
 
     const checkKey = (key) => {
         if (key.length !== 64) {
-            throw "Key does not have length of 64";
+            return false
         } else if (!is_hexadecimal(key)){
-            throw "Key is not hex string";
+            return false
         }
         return true;
     }
@@ -149,13 +170,6 @@
      } catch (e) {
        setVer("not a chainweb node")
      }
-
-    // console.log(await res.json())
-     // if (s.includes("testnet")) {
-     //   setVer("testnet04")
-     // } else {
-     //   setVer("mainnet01")
-     // }
    }
 
    const generateAccount = () => {
@@ -178,7 +192,6 @@
       { key: '9', value: '9', text: '9' },
     ]
 
-    // const bootstraps =
 
     const preds = [
        { key: '0', value: 'keys-all', text: 'keys-all' },
@@ -202,15 +215,15 @@
             <Header as="h6" style={{color:'black', fontWeight: 'bold', fontSize: 40, marginTop: 20}}>
               Command Preview
             </Header>
-            <div style={{margin: 10}}>
-            <Header as="h1" style={{color:'black',  fontSize: 15}}>
-              <code>{showCmd()}</code>
-            </Header>
+            <div style={{margin: 10, overflow: "auto"}}>
+              <Header as="h1" style={{color:'black',  fontSize: 15, margin: 5}}>
+                <code>{showCmd()}</code>
+              </Header>
             </div>
             <Header as="h6" style={{color:'black', fontWeight: 'bold', fontSize: 20, marginBottom: 10}}>
               API Host
             </Header>
-            <div>
+            <div style={{margin: 20}}>
               <code>{host + "/api/v1/local"}</code>
             </div>
             <Button
@@ -223,9 +236,9 @@
                   }}
                 loading={loading}
                 onClick={() => localCall()}
-                disabled={(chainId === "<CHAIN_ID>" || pactCode === "" || privKey === "" || pubKey === "")}
+                disabled={(chainId === "" || pactCode === "" || privKey === "" || pubKey === "")}
               >
-              Submit Transaction
+              Preview Transaction
             </Button>
             {(res === "") ? <div> </div> :
               <div style={{ margin: 10, marginRight: 20, marginBottom: 50}}>
@@ -413,16 +426,6 @@
                   <Popup.Content>Server is the Chainweb node you would like to execute the transaction on </Popup.Content>
                 </Popup>
               </label>
-              {/*
-              <Form.Input
-                style={{width:"340px"}}
-                icon='globe'
-                iconPosition='left'
-                placeholder='Server'
-                value={server}
-                onChange={(e) => onChangeServer(e.target.value)}
-              />
-              */}
               <Select
                 style={{width:"340px"}}
                 placeholder='Server'
@@ -435,6 +438,7 @@
                   const newCat = { key: value, text: value,
                   value: value }
                   setBootstraps([...bootstraps, newCat]);
+                  saveNode(newCat);
                 }}
                 onSearchChange={(e, {value}) => {
                   onChangeServer(e.target.value)}
