@@ -219,12 +219,13 @@
               <Header as="h1" style={{color:'black',  fontSize: 15, margin: 5}}>
                 <code>{showCmd()}</code>
               </Header>
-            </div>
+
             <Header as="h6" style={{color:'black', fontWeight: 'bold', fontSize: 20, marginBottom: 10}}>
               API Host
             </Header>
             <div style={{margin: 20}}>
               <code>{host + "/api/v1/local"}</code>
+            </div>
             </div>
             <Button
                 style={{
