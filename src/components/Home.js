@@ -224,7 +224,7 @@
               API Host
             </Header>
             <div style={{margin: 20}}>
-              <code>{host + "/api/v1/local"}</code>
+              <code>{(host === `https://${server}/chainweb/0.0/${ver}/chain//pact` ? "Select Chain Id" : host + "/api/v1/local")}</code>
             </div>
             </div>
             <Button
@@ -232,7 +232,7 @@
                   backgroundColor: "#B54FA3",
                   color: "white",
                   marginBottom: 10,
-                  marginTop: 20,
+                  marginTop: 10,
                   width: 340,
                   }}
                 loading={loading}
