@@ -81,6 +81,7 @@
   }
 
   const showCmd = () => {
+
     try {
     if (is_hexadecimal(pubKey) && checkKey(pubKey) && is_hexadecimal(privKey) && checkKey(privKey)) {
       return (
@@ -89,7 +90,8 @@
           new Date().toISOString(),
           pactCode,
           ksName !== "" ? {[ksName]: {"pred": pred, "keys": envKeys}} : {},
-          Pact.lang.mkMeta(acct, chainId, gasPrice, gasLimit, creationTime, ttl)
+          Pact.lang.mkMeta(acct, chainId, gasPrice, gasLimit, creationTime, ttl),
+          ver
         ))
       )
     }} catch(e){
