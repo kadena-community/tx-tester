@@ -95,8 +95,8 @@
         ))
       )
     }} catch(e){
-      console.log(e)
-      return "Invlaid keypair format"
+      console.log(e.message)
+      return e.message
     }
     return "Enter a valid keypair to preview JSON request (or click generate)"
 
@@ -512,7 +512,7 @@
                 iconPosition='left'
                 placeholder='Creation Time'
                 value={createTime()}
-                onChange={(e) => setCreationTime(e.target.value)}
+                onChange={(e) => setCreationTime((!isNaN(parseFloat(e.target.value)) ? parseFloat(e.target.value) : ""))}
               />
             </Form.Field>
             <Form.Field style={{width:"240px", margin: "0 auto", marginTop: "10px"}}>
@@ -533,7 +533,7 @@
                 iconPosition='left'
                 placeholder='Time To Live'
                 value={ttl}
-                onChange={(e) => setTtl(e.target.value)}
+                onChange={(e) => setTtl((!isNaN(parseFloat(e.target.value)) ? parseFloat(e.target.value) : ""))}
               />
             </Form.Field>
             <Form.Field style={{width:"240px", margin: "0 auto", marginTop: "10px"}}>
@@ -554,7 +554,12 @@
                 iconPosition='left'
                 placeholder='Gas Price'
                 value={gasPrice}
-                onChange={(e) => setGasPrice(e.target.value)}
+                onChange={(e) => {
+                  console.log(e.target.value)
+                  if (parseFloat(e.target.value) === 0) setGasPrice(e.target.value)
+                  else setGasPrice((!isNaN(parseFloat(e.target.value)) ? parseFloat(e.target.value) : ""))
+
+                }}
               />
             </Form.Field>
             <Form.Field style={{width:"240px", margin: "0 auto", marginTop: "10px"}}>
@@ -575,7 +580,7 @@
                 iconPosition='left'
                 placeholder='Gas Limit'
                 value={gasLimit}
-                onChange={(e) => setGasLimit(e.target.value)}
+                onChange={(e) => setGasLimit((!isNaN(parseFloat(e.target.value)) ? parseFloat(e.target.value) : ""))}
               />
             </Form.Field>
             <Header block as="h6" style={{color:'black', fontWeight: 'bold', fontSize: 20, marginTop: 30, textAlign: 'center'}}>
