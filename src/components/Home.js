@@ -218,14 +218,14 @@
             </Header>
             <div style={{margin: 10, overflow: "auto"}}>
               <Header as="h1" style={{color:'black',  fontSize: 15, margin: 5}}>
-                <code>{showCmd()}</code>
+                <code style={{wordBreak: "break-all"}}>{showCmd()}</code>
               </Header>
 
             <Header as="h6" style={{color:'black', fontWeight: 'bold', fontSize: 20, marginBottom: 10}}>
               API Host
             </Header>
             <div style={{margin: 20}}>
-              <code>{(host === `https://${server}/chainweb/0.0/${ver}/chain//pact` ? "Select Chain Id" : host + "/api/v1/local")}</code>
+              <code style={{wordBreak: "break-all"}}>{(host === `https://${server}/chainweb/0.0/${ver}/chain//pact` ? "Select Chain Id" : host + "/api/v1/local")}</code>
             </div>
             </div>
             <Button
@@ -246,10 +246,10 @@
               <div style={{ margin: 10, marginRight: 20, marginBottom: 50}}>
                  <Message style={{overflow: "auto", margin: "0 auto"}}>
                    <Message.Header >Your Local Request Response:</Message.Header>
-                   <p style={{fontSize: "40px"}}>
+                   <p style={{fontSize: "40px", wordBreak: "break-all"}}>
                      {res}
                   </p>
-                  <p style={{fontSize: "30px"}}>
+                  <p style={{fontSize: "30px", wordBreak: "break-all"}}>
                      {mess}
                    </p>
                  </Message>
@@ -284,7 +284,9 @@
             </Popup>
           </label>
           <Form.Input
-            style={{width:"340px", height: "150px"}}
+            style={{width:"340px", height: "150px", wordBreak: "break-all"}}
+            fluid
+            focus
             placeholder='(coin.details "nick-cage")'
             value={pactCode}
             onChange={(e) => setPactCode(e.target.value)}
