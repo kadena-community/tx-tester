@@ -435,6 +435,12 @@
                 placeholder='Server'
                 search={true}
                 fluid
+                onClose={(e, {value }) => {
+                  const newCat = { key: value, text: value,
+                  value: value }
+                  setBootstraps([...bootstraps, newCat]);
+                  saveNode(newCat);
+                }}
                 options={bootstraps}
                 value={server}
                 allowAdditions
