@@ -95,7 +95,6 @@
         ))
       )
     }} catch(e){
-      console.log(e.message)
       return e.message
     }
     return "Enter a valid keypair to preview JSON request (or click generate)"
