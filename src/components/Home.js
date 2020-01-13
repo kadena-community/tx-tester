@@ -262,7 +262,7 @@
 
 
 
-        <Grid.Column style={{backgroundColor: "#a885a4"}}>
+        <Grid.Column style={{backgroundColor: "	#99468A"}}>
         <div
           style={{overflow: "auto",
           height: window.innerHeight + 50}}
@@ -347,7 +347,7 @@
             />
             <Button
                 style={{
-                  backgroundColor: "#B54FA3",
+                  backgroundColor: "	#562853",
                   color: "white",
                   marginBottom: 5,
                   marginTop: 5,
