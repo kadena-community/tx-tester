@@ -1,5 +1,5 @@
  import React, { useState, useContext } from 'react';
- import { Button, Grid, Input, Icon, Form, List, Modal, Header, Message, Popup, Select } from 'semantic-ui-react';
+ import { Button, Grid, Input, Icon, Form, List, Modal, Header, Message, Popup, Select, Radio, Tab, TextArea } from 'semantic-ui-react';
  import Pact from 'pact-lang-api'
 
  const savedNodes = localStorage.getItem('nodes');
@@ -9,7 +9,11 @@
    const createTime = () => Math.round((new Date).getTime()/1000)-15;
 
 
+
+
    const [caps, setCaps] = useState(["(coin.GAS)"]);
+   const [hash, setHash] = useState("")
+   const [sig, setSig] = useState("kp");
    const [tempCap, setTempCap] = useState("");
    const [server, setServer] = useState("us-e1.chainweb.com");
    const [ver, setVer] = useState("mainnet01");
@@ -88,7 +92,7 @@
         JSON.stringify(Pact.api.prepareExecCmd(
           [{publicKey: pubKey, secretKey: privKey, clist: formatCaps(caps)}],
           new Date().toISOString(),
-          pactCode,
+          pactCode.replace("\n", ""),
           ksName !== "" ? {[ksName]: {"pred": pred, "keys": envKeys}} : {},
           Pact.lang.mkMeta(acct, chainId, gasPrice, gasLimit, creationTime, ttl),
           ver
@@ -106,7 +110,7 @@
        setLoading(true);
        const envData = ksName !== "" ? {[ksName]: {"pred": pred, "keys": envKeys}} : {}
        const cmd = await Pact.fetch.local({
-         pactCode: pactCode,
+         pactCode: pactCode.replace("\n", ""),
          keyPairs: [{publicKey: pubKey, secretKey: privKey, clist: formatCaps(caps)}],
          meta: Pact.lang.mkMeta(acct, chainId, gasPrice, gasLimit, creationTime, ttl),
          envData: envData,
@@ -199,6 +203,54 @@
        { key: '1', value: 'keys-any', text: 'keys-any' },
      ]
 
+     function toPubLoad(isPub){
+        try {
+          var fileToLoad = document.getElementById("to-pub-file").files[0];
+          if (fileToLoad.name.substr(fileToLoad.name.length - 4) !== ".kda" || fileToLoad.name.includes((isPub ? "private" : "public"))) {
+            alert(`file must be a .kda ${(!isPub ? "private" : "public")} key file`)
+            document.getElementById("to-pub-file").files = ""
+          }
+          var fileReader = new FileReader();
+          fileReader.onload = function(fileLoadedEvent){
+              var textFromFileLoaded = fileLoadedEvent.target.result;
+              console.log(textFromFileLoaded)
+          };
+          fileReader.readAsText(fileToLoad, "UTF-8");
+        } catch (err) {
+          console.log(err)
+        }
+      }
+
+  const panes = [
+    { menuItem: 'JSON', render: () => <Tab.Pane>
+    <div>
+      <div >
+        <Header as="h1" style={{color:'black',  fontSize: 15, margin: 5}}>
+          <code style={{wordBreak: "break-all"}}>{showCmd()}</code>
+        </Header>
+        <Header as="h6" style={{color:'black', fontWeight: 'bold', fontSize: 20, marginBottom: 10}}>
+          API Host
+        </Header>
+        <div style={{margin: 20, marginBottom: 0}}>
+          <code style={{wordBreak: "break-all"}}>{(host === `https://${server}/chainweb/0.0/${ver}/chain//pact` ? "Select Chain Id" : host + "/api/v1/local")}</code>
+        </div>
+      </div>
+    </div>
+    </Tab.Pane> },
+    { menuItem: 'curl cmd', render: () => <Tab.Pane>
+    <div>
+      <div style={{}}>
+        <Header as="h1" style={{color:'black',  fontSize: 15, margin: 5}}>
+          <code style={{wordBreak: "break-all"}}>{showCmd()}</code>
+        </Header>
+        <div style={{margin: 20, marginBottom: 0}}>
+          <code style={{wordBreak: "break-all"}}>{(host === `https://${server}/chainweb/0.0/${ver}/chain//pact` ? "Select Chain Id" : host + "/api/v1/local")}</code>
+        </div>
+      </div>
+    </div>
+    </Tab.Pane> },
+  ]
+
    return (
      <div>
       <Grid columns={2}
@@ -208,7 +260,9 @@
         <Grid.Column>
         <div
           style={{overflow: "auto",
-          height: window.innerHeight}}
+          marginLeft: 5,
+          height: window.innerHeight,
+          width: window.innerWidth / 2}}
         >
         <Grid>
           <Grid.Column textAlign="center">
@@ -216,18 +270,8 @@
             <Header as="h6" style={{color:'black', fontWeight: 'bold', fontSize: 40, marginTop: 20}}>
               Command Preview
             </Header>
-            <div style={{margin: 10, overflow: "auto"}}>
-              <Header as="h1" style={{color:'black',  fontSize: 15, margin: 5}}>
-                <code style={{wordBreak: "break-all"}}>{showCmd()}</code>
-              </Header>
+            <Tab panes={panes}/>
 
-            <Header as="h6" style={{color:'black', fontWeight: 'bold', fontSize: 20, marginBottom: 10}}>
-              API Host
-            </Header>
-            <div style={{margin: 20}}>
-              <code style={{wordBreak: "break-all"}}>{(host === `https://${server}/chainweb/0.0/${ver}/chain//pact` ? "Select Chain Id" : host + "/api/v1/local")}</code>
-            </div>
-            </div>
             <Button
                 style={{
                   backgroundColor: "#B54FA3",
@@ -271,8 +315,8 @@
         <Header block as="h6" style={{color:'black', fontWeight: 'bold', fontSize: 20, marginTop: 30, textAlign: 'center'}}>
           Pact Code to execute
         </Header>
-        <Form.Field  style={{width:"240px", margin: "0 auto", marginTop: "10px"}}>
-          <label>Pact Code
+        <Form.Field  style={{width:"240px", margin: "0 auto", marginTop: "10px"}} >
+          <label style={{color: "white"}}>Pact Code
             <Popup
               trigger={
                 <Icon name='help circle' style={{"marginLeft": "2px"}}/>
@@ -283,20 +327,20 @@
               <Popup.Content>Pact is Kadena's smart contract programming language. Type arbitrary pact expressions in the inpout box below. For more help look at our docs: <a>https://pact-language.readthedocs.io/en/stable/</a></Popup.Content>
             </Popup>
           </label>
-          <Form.Input
+          <TextArea
             style={{width:"340px", height: "150px", wordBreak: "break-all"}}
-            fluid
-            focus
-            placeholder='(coin.details "nick-cage")'
+            placeholder='                                                                                           (coin.details "nick-cage")                                            (coin.tranfer "from" "to" 12.4)                                          (coin.tranfer-create "from" "to" (read-keyset "to-ks") 4.2)                                                                            (coin.create-account "my-new-acct" (read-keyset "my-new-ks"))'
             value={pactCode}
             onChange={(e) => setPactCode(e.target.value)}
           />
         </Form.Field>
+        </Form>
+        <Form onKeyPress={e => {if (e.key === 'Enter') e.preventDefault()}}>
         <Header block as="h6" style={{color:'black', fontWeight: 'bold', fontSize: 20, marginTop: 30,textAlign: 'center'}}>
           Signing
         </Header>
         <Form.Field style={{width:"240px", margin: "0 auto", marginTop: "10px"}}>
-          <label>Account Name
+          <label style={{color: "white"}}>Account Name
             <Popup
               trigger={
                 <Icon name='help circle' style={{"marginLeft": "2px"}}/>
@@ -317,18 +361,48 @@
           />
         </Form.Field>
         <Form.Field style={{width:"240px", margin: "0 auto", marginTop: "10px"}}>
-            <label>Key Pair
-              <Popup
-                trigger={
-                  <Icon name='help circle' style={{"marginLeft": "2px"}}/>
-                }
-                position='top center'
-                style={{width: "340px"}}
-              >
-                <Popup.Header>What is a Keypair?</Popup.Header>
-                <Popup.Content>A keypair is composed of a public key and a private key. If you don't have a keypair, generate one in the Kadena wallet, or click 'Generate' for tx's that don't require a particular account to sign it. For example, to do a (coin.transfer "to" "from" 1.0) you must sign with the keys assosciated with the transfering account, but to do an account info call such as (coin.details "nick-cage"), you can sign with a dummy key pair as there are no capabilities assosciated with this transaction</Popup.Content>
-              </Popup>
-            </label>
+            <Form.Field>
+              <Radio
+                label={
+                  <label style={{color: "white"}}>Key Pair
+                    <Popup
+                      trigger={
+                        <Icon name='help circle' style={{"marginLeft": "2px"}}/>
+                      }
+                      position='top center'
+                      style={{width: "340px"}}
+                    >
+                      <Popup.Header>What is a Keypair?</Popup.Header>
+                      <Popup.Content>A keypair is composed of a public key and a private key. If you don't have a keypair, generate one in the Kadena wallet, or click 'Generate' for tx's that don't require a particular account to sign it. For example, to do a (coin.transfer "to" "from" 1.0) you must sign with the keys assosciated with the transfering account, but to do an account info call such as (coin.details "nick-cage"), you can sign with a dummy key pair as there are no capabilities assosciated with this transaction</Popup.Content>
+                    </Popup>
+                  </label>}
+                name='radioGroup'
+                value='kp'
+                checked={sig === 'kp'}
+                onChange={() => setSig('kp')}
+              />
+              <Form.Field>
+                <Radio
+                label={
+                  <label style={{color: "white"}}>Signature
+                    <Popup
+                      trigger={
+                        <Icon name='help circle' style={{"marginLeft": "2px"}}/>
+                      }
+                      position='top center'
+                      style={{width: "340px"}}
+                    >
+                      <Popup.Header>What is a Signature?</Popup.Header>
+                      <Popup.Content>This is a safe way to sign your transaction offline without pasting your private on the web. Once you fill in all the parameters for your desired trasaction you will be provided a hash that you can copy and sign offline with the Chainweaver wallet or pact cli. You must sign with the corresponding private key of the public key provided.</Popup.Content>
+                    </Popup>
+                  </label>}
+                  name='radioGroup'
+                  value='sig'
+                  checked={sig === 'sig'}
+                  onChange={() => setSig('sig')}
+                />
+              </Form.Field>
+            </Form.Field>
             <Input
               placeholder='Public Key'
               icon="key"
@@ -337,32 +411,77 @@
               value={pubKey}
               onChange={(e) => setPubKey(e.target.value)}
             />
-            <Input
-              placeholder='Private Key'
-              icon="lock"
-              iconPosition="left"
-              style={{marginTop: 5, width: "340px"}}
-              value={privKey}
-              onChange={(e) => setPrivKey(e.target.value)}
-            />
-            <Button
-                style={{
-                  backgroundColor: "grey",
-                  color: "white",
-                  marginBottom: 5,
-                  marginTop: 5,
-                  width: 340,
-                  bottom: 0,
-                  right: 0
-                  }}
-                onClick={() => generateAccount()}
-              >
-              Generate (tx sig not required)
-            </Button>
+            {sig === 'kp' ?
+            <div>
+              <Input
+                placeholder='Private Key'
+                icon="lock"
+                iconPosition="left"
+                style={{marginTop: 5, width: "340px"}}
+                value={privKey}
+                onChange={(e) => setPrivKey(e.target.value)}
+              />
+              <div style={{display:"flex",flexDirection: "row"}}>
+              <input
+                style={{marginTop: 5, width: "227px", flex: 1}}
+                id="to-pub-file"
+                type="file"
+                onChange={(e) => toPubLoad(false)}/>
+
+              <Message color='purple'
+                  style={{
+                    // backgroundColor: "grey",
+                    // color: "white",
+                    marginTop: 5,
+                    marginRight: 5,
+                    marginLeft: 5,
+                    width: 270,
+                    flex: 1,
+                    bottom: 0,
+                    right: 0
+                    }}
+                  onClick={() => generateAccount()}
+                >
+                <Message.Header>
+                Generate
+                </Message.Header>
+              </Message>
+              </div>
+            </div>
+            :
+            <div>
+              <input
+                style={{marginTop: 5, width: "340px"}}
+                id="to-pub-file"
+                type="file"
+                onChange={(e) => toPubLoad(true)}/>
+              <Message color='purple' style={{marginTop: 5, marginBottom: 5, width: "340px"}}>
+                <Message.Header>
+                  Hash to Sign
+                  <Button
+                    circular
+                    icon='copy'
+                    basic
+                    disabled={hash === ""}
+                    style={{marginLeft: 5, marginTop: 0}}
+                    onClick={(e) => navigator.clipboard.writeText(hash)}/>
+                </Message.Header>
+                <p>{hash !== "" ? hash : "please fill in all parameters first"}</p>
+              </Message>
+              <Input
+                placeholder='TX Signature'
+                icon="pencil alternate"
+                iconPosition="left"
+                style={{width: "340px"}}
+                value={""}
+                onChange={(e) => console.log("sighere")}
+              />
+            </div>
+          }
           </Form.Field>
 
           <Form.Field style={{width:"240px", margin: "0 auto", marginTop: "10px"}}>
-              <label>Capabilities
+              <label style={{color: "white"}}>Capabilities
                 <Popup
                   trigger={
                     <Icon name='help circle' style={{"marginLeft": "2px"}}/>
@@ -419,7 +538,7 @@
               Network
             </Header>
             <Form.Field style={{width:"240px", margin: "0 auto", marginTop: "10px"}}>
-              <label>Server
+              <label style={{color: "white"}}>Server
                 <Popup
                   trigger={
                     <Icon name='help circle' style={{"marginLeft": "2px"}}/>
@@ -434,9 +553,8 @@
                 style={{width:"340px"}}
                 placeholder='Server'
                 search={true}
-                fluid
                 onClose={(e, {value }) => {
-                  const newCat = { key: value, text: value,
+                  const newCat = { key: Math.random().toString(), text: value,
                   value: value }
                   setBootstraps([...bootstraps, newCat]);
                   saveNode(newCat);
@@ -459,7 +577,7 @@
               />
             </Form.Field>
             <Form.Field style={{width:"240px", margin: "0 auto", marginTop: "10px"}}>
-              <label>Version
+              <label style={{color: "white"}}>Version
                 <Popup
                   trigger={
                     <Icon name='help circle' style={{"marginLeft": "2px"}}/>
@@ -483,7 +601,7 @@
               Meta Data
             </Header>
             <Form.Field style={{width:"240px", margin: "0 auto", marginTop: "10px"}}>
-              <label>Chain ID
+              <label style={{color: "white"}}>Chain ID
                 <Popup
                   trigger={
                     <Icon name='help circle' style={{"marginLeft": "2px"}}/>
@@ -502,7 +620,7 @@
               />
             </Form.Field>
             <Form.Field style={{width:"240px", margin: "0 auto", marginTop: "10px"}}>
-              <label>Creation Time
+              <label style={{color: "white"}}>Creation Time
                 <Popup
                   trigger={
                     <Icon name='help circle' style={{"marginLeft": "2px"}}/>
@@ -523,7 +641,7 @@
               />
             </Form.Field>
             <Form.Field style={{width:"240px", margin: "0 auto", marginTop: "10px"}}>
-              <label>TTL
+              <label style={{color: "white"}}>TTL
                 <Popup
                   trigger={
                     <Icon name='help circle' style={{"marginLeft": "2px"}}/>
@@ -544,7 +662,7 @@
               />
             </Form.Field>
             <Form.Field style={{width:"240px", margin: "0 auto", marginTop: "10px"}}>
-              <label>Gas Price
+              <label style={{color: "white"}}>Gas Price
                 <Popup
                   trigger={
                     <Icon name='help circle' style={{"marginLeft": "2px"}}/>
@@ -570,7 +688,7 @@
               />
             </Form.Field>
             <Form.Field style={{width:"240px", margin: "0 auto", marginTop: "10px"}}>
-              <label>Gas Limit
+              <label style={{color: "white"}}>Gas Limit
                 <Popup
                   trigger={
                     <Icon name='help circle' style={{"marginLeft": "2px"}}/>
@@ -594,7 +712,7 @@
               Env Data (Advanced)
             </Header>
             <Form.Field style={{width:"240px", margin: "0 auto", marginTop: "10px"}}>
-              <label>Keyset Name
+              <label style={{color: "white"}}>Keyset Name
                 <Popup
                   trigger={
                     <Icon name='help circle' style={{"marginLeft": "2px"}}/>
@@ -615,7 +733,7 @@
               />
             </Form.Field>
             <Form.Field style={{width:"240px", margin: "0 auto", marginTop: "10px"}}>
-              <label>Keyset Predicate
+              <label style={{color: "white"}}>Keyset Predicate
                 <Popup
                   trigger={
                     <Icon name='help circle' style={{"marginLeft": "2px"}}/>
@@ -671,7 +789,7 @@
                   placeholder='Public Key'
                   icon="key"
                   iconPosition="left"
-                  style={{width: "340px", marginTop: 5, marginBottom: 20}}
+                  style={{width: "340px", marginTop: 5, marginBottom: 100}}
                   value={tempKey}
                   // onChange={(e) => setEnvKeys([...envKeys, e.target.value])}
                   onChange={(e) => setTempKey(e.target.value)}
