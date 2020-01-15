@@ -1,4 +1,4 @@
- import React, { useState, useContext } from 'react';
+ import React, { useState, useContext, useEffect } from 'react';
  import { Button, Grid, Input, Icon, Form, List, Modal, Header, Message, Popup, Select, Radio, Tab, TextArea } from 'semantic-ui-react';
  import Pact from 'pact-lang-api'
 
@@ -6,14 +6,10 @@
 
  const Home = () => {
 
-   const createTime = () => Math.round((new Date).getTime()/1000)-15;
-
-
-
-
    const [caps, setCaps] = useState(["(coin.GAS)"]);
    const [hash, setHash] = useState("")
-   const [sig, setSig] = useState("kp");
+   const [sig, setSig] = useState("sig");
+   const [sigText, setSigText] = useState("")
    const [tempCap, setTempCap] = useState("");
    const [server, setServer] = useState("us-e1.chainweb.com");
    const [ver, setVer] = useState("mainnet01");
@@ -22,7 +18,7 @@
    const [pubKey, setPubKey] = useState("");
    const [privKey, setPrivKey] = useState("");
    const [chainId, setChainId] = useState("");
-   const [creationTime, setCreationTime] = useState(createTime());
+   const [creationTime, setCreationTime] = useState(Math.round((new Date).getTime()/1000)-15);
    const [ttl, setTtl] = useState(28800);
    const [gasPrice, setGasPrice] = useState(0.00001);
    const [gasLimit, setGasLimit] = useState(1500);
@@ -33,6 +29,7 @@
    const [res, setRes] = useState("");
    const [mess, setMess] = useState("")
    const [loading, setLoading] = useState(false);
+   const [cmd, setCmd] = useState("");
    const [bootstraps, setBootstraps] = useState(
      (savedNodes === null ? [
         { key: '0', value: 'us-e1.chainweb.com', text: 'us-e1.chainweb.com' },
@@ -62,6 +59,19 @@
          { key: '11', value: 'jp3.chainweb.com', text: 'jp3.chainweb.com' },
        ].concat(JSON.parse(savedNodes)))
    );
+   useEffect(() => {
+     setCmd(showCmd())
+   }, [pactCode, caps, sig, sigText, ver, acct, pubKey, privKey, chainId, ttl, gasPrice, gasLimit, envKeys, pred])
+
+   var mkReq = function(cmd) {
+     return {
+       headers: {
+         "Content-Type": "application/json"
+       },
+       method: "POST",
+       body: JSON.stringify(cmd)
+     };
+   };
 
    const host = `https://${server}/chainweb/0.0/${ver}/chain/${chainId}/pact`
 
@@ -80,63 +90,36 @@
      if (nodes === null) {
        localStorage.setItem('nodes', JSON.stringify([url]))
      } else {
-       localStorage.setItem('nodes', JSON.stringify(JSON.parse(nodes).concat([url])));
+       console.log(JSON.parse(nodes))
+       console.log(url)
+       var filtered = JSON.parse(nodes).filter(x => x.value === url.value)
+       console.log(filtered)
+       if (filtered.length === 0) {
+         localStorage.setItem('nodes', JSON.stringify(JSON.parse(nodes).concat([url])));
+       }
      }
   }
 
   const showCmd = () => {
-
     try {
-    if (is_hexadecimal(pubKey) && checkKey(pubKey) && is_hexadecimal(privKey) && checkKey(privKey)) {
-      return (
-        JSON.stringify(Pact.api.prepareExecCmd(
-          [{publicKey: pubKey, secretKey: privKey, clist: formatCaps(caps)}],
-          new Date().toISOString(),
-          pactCode.replace("\n", ""),
-          ksName !== "" ? {[ksName]: {"pred": pred, "keys": envKeys}} : {},
-          Pact.lang.mkMeta(acct, chainId, gasPrice, gasLimit, creationTime, ttl),
-          ver
-        ))
+      const cmdJSON = Pact.api.prepareExecCmd(
+        [{publicKey: pubKey, secretKey: privKey, clist: formatCaps(caps)}],
+        creationTime.toString(),
+        pactCode.replace("\n", ""),
+        ksName !== "" ? {[ksName]: {"pred": pred, "keys": envKeys}} : {},
+        Pact.lang.mkMeta(acct, chainId, gasPrice, gasLimit, creationTime, ttl),
+        ver
       )
-    }} catch(e){
+      if (sig === "sig" && cmdJSON.sigs[0]) {
+        cmdJSON.sigs[0].sig = sigText
+      }
+      return JSON.stringify(cmdJSON)
+  } catch(e){
       return e.message
     }
     return "Enter a valid keypair to preview JSON request (or click generate)"
 
   }
-
-   const localCall = async () => {
-     try {
-       setLoading(true);
-       const envData = ksName !== "" ? {[ksName]: {"pred": pred, "keys": envKeys}} : {}
-       const cmd = await Pact.fetch.local({
-         pactCode: pactCode.replace("\n", ""),
-         keyPairs: [{publicKey: pubKey, secretKey: privKey, clist: formatCaps(caps)}],
-         meta: Pact.lang.mkMeta(acct, chainId, gasPrice, gasLimit, creationTime, ttl),
-         envData: envData,
-         networkId: ver,
-       }, host)
-       setLoading(false);
-       console.log(cmd)
-       if (cmd.status === "failure") {
-         setRes("TX preview failed:")
-         setMess(cmd.error.message)
-       } else {
-         setRes("TX preview suceeded:")
-         setMess(JSON.stringify(cmd.data))
-       }
-     } catch (e) {
-       setRes("CHECK YOUR INPUTS")
-       if (pactCode === "") {
-         setMess("Enter some Pact code")
-       }
-       else if (chainId === "") {
-         setMess("Set Chain ID")
-       } else {
-         setMess(e.message)
-       }
-     }
-   }
 
    const is_hexadecimal = (str) => {
     const regexp = /^[0-9a-fA-F]+$/;
@@ -184,6 +167,12 @@
      setPrivKey(kp.secretKey);
    }
 
+   const curlCmd = () => {
+     return (
+       `curl -sk -H \"Content-Type: application/json\" -d '${cmd}' -X POST ${(host === `https://${server}/chainweb/0.0/${ver}/chain//pact` ?  "Select Chain Id" : (ver === "not a chainweb node") ? "Select a valid Chainweb node" : host + "/api/v1/local")}`
+     )
+   }
+
    const chainIds = [
       { key: '0', value: '0', text: '0' },
       { key: '1', value: '1', text: '1' },
@@ -196,7 +185,6 @@
       { key: '8', value: '8', text: '8' },
       { key: '9', value: '9', text: '9' },
     ]
-
 
     const preds = [
        { key: '0', value: 'keys-all', text: 'keys-all' },
@@ -221,18 +209,60 @@
         }
       }
 
+      const localCall = async () => {
+        try {
+          setLoading(true);
+          const envData = ksName !== "" ? {[ksName]: {"pred": pred, "keys": envKeys}} : {}
+          // const res = await Pact.fetch.local({
+          //   pactCode: pactCode.replace("\n", ""),
+          //   keyPairs: [{publicKey: pubKey, secretKey: privKey, clist: formatCaps(caps)}],
+          //   meta: Pact.lang.mkMeta(acct, chainId, gasPrice, gasLimit, creationTime, ttl),
+          //   envData: envData,
+          //   networkId: ver,
+          // }, host)
+          const parsedCmd = JSON.parse(cmd)
+
+          const txRes = await fetch(`${host}/api/v1/local`, mkReq(parsedCmd));
+          const res = await txRes.json();
+          console.log(res)
+          setLoading(false);
+          if (res.result.status === "failure") {
+            setRes("TX preview failed:")
+            setMess(res.result.error.message)
+          } else {
+            setRes("TX preview suceeded:")
+            setMess(JSON.stringify(res.result.data))
+          }
+        } catch (e) {
+          setLoading(false);
+          setRes("CHECK YOUR INPUTS")
+          if (pactCode === "") {
+            setMess("Enter some Pact code")
+          }
+          else if (chainId === "") {
+            setMess("Set Chain ID")
+          } else {
+            if (e.message === "Unexpected token V in JSON at position 0") {
+              setMess("Make sure you signed after you filled in the rest of the transaction details")
+            } else {
+              setMess(e.message)
+            }
+          }
+        }
+      }
+
   const panes = [
     { menuItem: 'JSON', render: () => <Tab.Pane>
     <div>
       <div >
         <Header as="h1" style={{color:'black',  fontSize: 15, margin: 5}}>
-          <code style={{wordBreak: "break-all"}}>{showCmd()}</code>
+          <code style={{wordBreak: "break-all"}}>{cmd}</code>
         </Header>
         <Header as="h6" style={{color:'black', fontWeight: 'bold', fontSize: 20, marginBottom: 10}}>
           API Host
         </Header>
         <div style={{margin: 20, marginBottom: 0}}>
-          <code style={{wordBreak: "break-all"}}>{(host === `https://${server}/chainweb/0.0/${ver}/chain//pact` ? "Select Chain Id" : host + "/api/v1/local")}</code>
+          <code style={{wordBreak: "break-all"}}>{(host === `https://${server}/chainweb/0.0/${ver}/chain//pact` ?  "Select Chain Id" : (ver === "not a chainweb node") ? "Select a valid Chainweb node" : host + "/api/v1/local")}</code>
         </div>
       </div>
     </div>
@@ -240,11 +270,26 @@
     { menuItem: 'curl cmd', render: () => <Tab.Pane>
     <div>
       <div style={{}}>
+        <code>{(chainId === "" || pactCode === "" ? "Please fill in all parameters before copying" : "Ready to copy and paste in command line")}</code>
         <Header as="h1" style={{color:'black',  fontSize: 15, margin: 5}}>
-          <code style={{wordBreak: "break-all"}}>{showCmd()}</code>
+          <code style={{wordBreak: "break-all"}}>{curlCmd()}</code>
         </Header>
         <div style={{margin: 20, marginBottom: 0}}>
-          <code style={{wordBreak: "break-all"}}>{(host === `https://${server}/chainweb/0.0/${ver}/chain//pact` ? "Select Chain Id" : host + "/api/v1/local")}</code>
+          <code style={{wordBreak: "break-all"}}>{(host === `https://${server}/chainweb/0.0/${ver}/chain//pact` ?  "Select Chain Id" : (ver === "not a chainweb node") ? "Select a valid Chainweb node" : "")}</code>
+        </div>
+      </div>
+    </div>
+    </Tab.Pane> },
+    { menuItem: 'yaml', render: () => <Tab.Pane>
+    <div>
+      <div style={{}}>
+        <Header as="h1" style={{color:'black',  fontSize: 15, margin: 5}}>
+          <code style={{wordBreak: "break-all"}}>
+            coming soon!
+          </code>
+        </Header>
+        <div style={{margin: 20, marginBottom: 0}}>
+          <code style={{wordBreak: "break-all"}}>{(host === `https://${server}/chainweb/0.0/${ver}/chain//pact` ?  "Select Chain Id" : (ver === "not a chainweb node") ? "Select a valid Chainweb node" : host + "/api/v1/local")}</code>
         </div>
       </div>
     </div>
@@ -257,12 +302,12 @@
         // verticalAlign='top'
         verticalAlign='middle'
         >
-        <Grid.Column>
+        <Grid.Column style={{overflow: "auto",
+        marginLeft: 10,
+        height: window.innerHeight,
+        width: window.innerWidth / 2 }}>
         <div
-          style={{overflow: "auto",
-          marginLeft: 5,
-          height: window.innerHeight,
-          width: window.innerWidth / 2}}
+
         >
         <Grid>
           <Grid.Column textAlign="center">
@@ -282,14 +327,13 @@
                   }}
                 loading={loading}
                 onClick={() => localCall()}
-                disabled={(chainId === "" || pactCode === "" || privKey === "" || pubKey === "")}
+                disabled={(chainId === "" || pactCode === "")}
               >
               Preview Transaction
             </Button>
             {(res === "") ? <div> </div> :
               <div style={{ margin: 10, marginRight: 20, marginBottom: 50}}>
                  <Message style={{overflow: "auto", margin: "0 auto"}}>
-                   <Message.Header >Your Local Request Response:</Message.Header>
                    <p style={{fontSize: "40px", wordBreak: "break-all"}}>
                      {res}
                   </p>
@@ -304,16 +348,14 @@
         </div>
         </Grid.Column>
 
-
-
         <Grid.Column style={{backgroundColor: "	#99468A"}}>
         <div
           style={{overflow: "auto",
           height: window.innerHeight + 50}}
         >
         <Form>
-        <Header block as="h6" style={{color:'black', fontWeight: 'bold', fontSize: 20, marginTop: 30, textAlign: 'center'}}>
-          Pact Code to execute
+        <Header as="h6" style={{color:'white', fontWeight: 'bold', fontSize: 30, marginLeft: 80, marginTop: 30, textAlign: 'center'}}>
+          Pact
         </Header>
         <Form.Field  style={{width:"240px", margin: "0 auto", marginTop: "10px"}} >
           <label style={{color: "white"}}>Pact Code
@@ -336,7 +378,7 @@
         </Form.Field>
         </Form>
         <Form onKeyPress={e => {if (e.key === 'Enter') e.preventDefault()}}>
-        <Header block as="h6" style={{color:'black', fontWeight: 'bold', fontSize: 20, marginTop: 30,textAlign: 'center'}}>
+        <Header as="h6" style={{color:'white', fontWeight: 'bold', fontSize: 30, marginLeft: 80, marginTop: 30,textAlign: 'center'}}>
           Signing
         </Header>
         <Form.Field style={{width:"240px", margin: "0 auto", marginTop: "10px"}}>
@@ -462,19 +504,20 @@
                     circular
                     icon='copy'
                     basic
-                    disabled={hash === ""}
+                    disabled={(chainId === "" || pactCode === "" || pubKey === "")}
+                    // disabled={hash === ""}
                     style={{marginLeft: 5, marginTop: 0}}
-                    onClick={(e) => navigator.clipboard.writeText(hash)}/>
+                    onClick={(e) => navigator.clipboard.writeText(JSON.parse(cmd).hash)}/>
                 </Message.Header>
-                <p>{hash !== "" ? hash : "please fill in all parameters first"}</p>
+                <p style={{wordBreak: "break-all"}}>{(chainId === "" || pactCode === "" || pubKey === "") ? "please fill in all parameters first" : (checkKey(pubKey) ? JSON.parse(cmd).hash : "enter a valid public key")}</p>
               </Message>
               <Input
                 placeholder='TX Signature'
                 icon="pencil alternate"
                 iconPosition="left"
                 style={{width: "340px"}}
-                value={""}
-                onChange={(e) => console.log("sighere")}
+                value={sigText}
+                onChange={(e) => setSigText(e.target.value)}
               />
             </div>
           }
@@ -522,6 +565,9 @@
                 style={{width: "340px", marginTop: 5}}
                 value={tempCap}
                 onChange={(e) => setTempCap(e.target.value)}
+                onClose={(e, {value }) => {
+                  console.log('closed')
+                }}
                 action={
                    <Button
                    icon="add"
@@ -534,7 +580,7 @@
                  }
               />
             </Form.Field>
-            <Header block as="h6" style={{color:'black', fontWeight: 'bold', fontSize: 20, marginTop: 30, textAlign: 'center'}}>
+            <Header as="h6" style={{color:'white', fontWeight: 'bold', fontSize: 30, marginLeft: 80, marginTop: 30,textAlign: 'center'}}>
               Network
             </Header>
             <Form.Field style={{width:"240px", margin: "0 auto", marginTop: "10px"}}>
@@ -597,7 +643,7 @@
                 // onChange={(e) => setVer(e.target.value)}
               />
             </Form.Field>
-            <Header block as="h6" style={{color:'black', fontWeight: 'bold', fontSize: 20, marginTop: 30, textAlign: 'center'}}>
+            <Header as="h6" style={{color:'white', fontWeight: 'bold', fontSize: 30, marginLeft: 80, marginTop: 30,textAlign: 'center'}}>
               Meta Data
             </Header>
             <Form.Field style={{width:"240px", margin: "0 auto", marginTop: "10px"}}>
@@ -620,6 +666,27 @@
               />
             </Form.Field>
             <Form.Field style={{width:"240px", margin: "0 auto", marginTop: "10px"}}>
+              <label style={{color: "white"}}>Sender
+                <Popup
+                  trigger={
+                    <Icon name='help circle' style={{"marginLeft": "2px"}}/>
+                  }
+                  position='top center'
+                >
+                  <Popup.Header>What is Sender? </Popup.Header>
+                  <Popup.Content>In the absence of a gas capability, the account specified as sender will be defaulted to the account name that signed the transaction</Popup.Content>
+                </Popup>
+              </label>
+              <Form.Input
+                style={{width:"340px"}}
+                icon='user'
+                iconPosition='left'
+                placeholder='Sender'
+                value={acct}
+                // onChange={(e) => setCreationTime((!isNaN(parseFloat(e.target.value)) ? parseFloat(e.target.value) : ""))}
+              />
+            </Form.Field>
+            <Form.Field style={{width:"240px", margin: "0 auto", marginTop: "10px"}}>
               <label style={{color: "white"}}>Creation Time
                 <Popup
                   trigger={
@@ -636,7 +703,7 @@
                 icon='calendar'
                 iconPosition='left'
                 placeholder='Creation Time'
-                value={createTime()}
+                value={creationTime}
                 onChange={(e) => setCreationTime((!isNaN(parseFloat(e.target.value)) ? parseFloat(e.target.value) : ""))}
               />
             </Form.Field>
@@ -708,7 +775,7 @@
                 onChange={(e) => setGasLimit((!isNaN(parseFloat(e.target.value)) ? parseFloat(e.target.value) : ""))}
               />
             </Form.Field>
-            <Header block as="h6" style={{color:'black', fontWeight: 'bold', fontSize: 20, marginTop: 30, textAlign: 'center'}}>
+            <Header as="h6" style={{color:'white', fontWeight: 'bold', fontSize: 30, marginLeft: 80, marginTop: 30,textAlign: 'center'}}>
               Env Data (Advanced)
             </Header>
             <Form.Field style={{width:"240px", margin: "0 auto", marginTop: "10px"}}>
