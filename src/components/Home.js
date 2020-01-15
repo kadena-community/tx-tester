@@ -371,7 +371,7 @@
           </label>
           <TextArea
             style={{width:"340px", height: "150px", wordBreak: "break-all"}}
-            placeholder='                                                                                           (coin.details "nick-cage")                                            (coin.tranfer "from" "to" 12.4)                                          (coin.tranfer-create "from" "to" (read-keyset "to-ks") 4.2)                                                                            (coin.create-account "my-new-acct" (read-keyset "my-new-ks"))'
+            placeholder='                                                                                           (coin.details "nick-cage")                                            (coin.transfer "from" "to" 12.4)                                          (coin.tranfer-create "from" "to" (read-keyset "to-ks") 4.2)                                                                            (coin.create-account "my-new-acct" (read-keyset "my-new-ks"))'
             value={pactCode}
             onChange={(e) => setPactCode(e.target.value)}
           />
