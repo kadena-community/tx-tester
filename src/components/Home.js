@@ -29,7 +29,9 @@
    const [res, setRes] = useState("");
    const [mess, setMess] = useState("")
    const [loading, setLoading] = useState(false);
+   const [sendLoading, setSendLoading] = useState(false);
    const [cmd, setCmd] = useState("");
+   const [reqKey, setReqKey] = useState("");
    const [bootstraps, setBootstraps] = useState(
      (savedNodes === null ? [
         { key: '0', value: 'us-e1.chainweb.com', text: 'us-e1.chainweb.com' },
@@ -206,6 +208,7 @@
           fileReader.readAsText(fileToLoad, "UTF-8");
         } catch (err) {
           console.log(err)
+          alert(`file must be a .kda ${(!isPub ? "private" : "public")} key file`)
         }
       }
 
@@ -251,33 +254,54 @@
         }
       }
 
+      const sendCall = async () => {
+        try {
+          setSendLoading(true);
+          const envData = ksName !== "" ? {[ksName]: {"pred": pred, "keys": envKeys}} : {}
+          const parsedCmd = JSON.parse(cmd)
+          const sendCmd = {
+            "cmds": [ parsedCmd ]
+          }
+          const txRes = await fetch(`${host}/api/v1/send`, mkReq(sendCmd));
+          const res = await txRes.json();
+          console.log(res)
+          setSendLoading(false);
+        } catch(e) {
+
+        }
+      }
+
   const panes = [
     { menuItem: 'JSON', render: () => <Tab.Pane>
     <div>
-      <div >
-        <Header as="h1" style={{color:'black',  fontSize: 15, margin: 5}}>
-          <code style={{wordBreak: "break-all"}}>{cmd}</code>
-        </Header>
-        <Header as="h6" style={{color:'black', fontWeight: 'bold', fontSize: 20, marginBottom: 10}}>
-          API Host
-        </Header>
-        <div style={{margin: 20, marginBottom: 0}}>
+      <div>
+        <Message warning={chainId === "" || pactCode === ""} positive={chainId !== "" || pactCode !== ""} style={{marginTop: 5, marginBottom: 5, fontWeight: "bold"}}>
+          <Message.Header style={{marginBottom: 10}}>
+            JSON Request Object
+          </Message.Header>
+          <code style={{wordBreak: "break-all", fontSize: 15,}}>
+            {cmd}
+          </code>
+          <Message.Header style={{marginBottom: 10, marginTop: 10}}>
+            API Host
+          </Message.Header>
           <code style={{wordBreak: "break-all"}}>{(host === `https://${server}/chainweb/0.0/${ver}/chain//pact` ?  "Select Chain Id" : (ver === "not a chainweb node") ? "Select a valid Chainweb node" : host + "/api/v1/local")}</code>
-        </div>
+        </Message>
       </div>
     </div>
     </Tab.Pane> },
     { menuItem: 'curl cmd', render: () => <Tab.Pane>
     <div>
-      <div style={{}}>
-        <code>{(chainId === "" || pactCode === "" ? "Please fill in all parameters before copying" : "Ready to copy and paste in command line")}</code>
-        <Header as="h1" style={{color:'black',  fontSize: 15, margin: 5}}>
-          <code style={{wordBreak: "break-all"}}>{curlCmd()}</code>
-        </Header>
-        <div style={{margin: 20, marginBottom: 0}}>
-          <code style={{wordBreak: "break-all"}}>{(host === `https://${server}/chainweb/0.0/${ver}/chain//pact` ?  "Select Chain Id" : (ver === "not a chainweb node") ? "Select a valid Chainweb node" : "")}</code>
+      <Message warning={chainId === "" || pactCode === ""} positive={chainId !== "" || pactCode !== ""} style={{marginTop: 5, marginBottom: 5}}>
+        <Message.Header style={{marginBottom: 10}}>
+          {(chainId === "" || pactCode === "" ? "Incomplete Curl Command (please fill in all parameters)" : "Complete Curl Command")}
+        </Message.Header>
+        <div style={{marginBottom: 5}}>
         </div>
-      </div>
+        <code style={{wordBreak: "break-all", fontSize: 15, marginBottom: 20, fontWeight: "bold"}}>
+          {curlCmd()}
+        </code>
+      </Message>
     </div>
     </Tab.Pane> },
     { menuItem: 'yaml', render: () => <Tab.Pane>
@@ -296,21 +320,54 @@
     </Tab.Pane> },
   ]
 
-   return (
-     <div>
-      <Grid columns={2}
-        // verticalAlign='top'
-        verticalAlign='middle'
-        >
-        <Grid.Column style={{overflow: "auto",
-        marginLeft: 10,
-        height: window.innerHeight,
-        width: window.innerWidth / 2 }}>
-        <div
+  const reqKeyTabs = [
+    { menuItem: 'Request Key', render: () => <Tab.Pane>
+      <Message style={{marginTop: 5, marginBottom: 5}}>
+        <Message.Header>
+          Request Key
+        </Message.Header>
+        <p style={{wordBreak: "break-all"}}>{reqKey}</p>
+      </Message>
+    </Tab.Pane> },
+    { menuItem: 'Poll curl cmd', render: () => <Tab.Pane></Tab.Pane> },
+  ]
 
-        >
-        <Grid>
-          <Grid.Column textAlign="center">
+  const resultTabs = [
+    { menuItem: 'Result Summary', render: () => <Tab.Pane></Tab.Pane> },
+    { menuItem: 'JSON Response', render: () => <Tab.Pane></Tab.Pane> },
+  ]
+
+  const showSend = () => {
+    if (res !== "TX preview suceeded:") {
+      return (
+        <div>
+          <Button
+              style={{
+                backgroundColor: "#B54FA3",
+                color: "white",
+                marginBottom: 10,
+                marginTop: 10,
+                width: 340,
+                }}
+              loading={sendLoading}
+              onClick={() => sendCall()}
+              disabled={sendLoading}
+            >
+            Send Transaction
+          </Button>
+          <Tab panes={reqKeyTabs}/>
+          <Tab panes={resultTabs}/>
+        </div>
+      )
+    } else {
+      return (<div></div>)
+    }
+  }
+
+   return (
+      <Grid columns={2} padded scrollable verticalAlign="top">
+          <Grid.Column textAlign="center" style={{overflow: "auto"}}>
+            <div style={{overflow: "auto", height: "100vh"}}>
             <img src="https://explorer.chainweb.com/static/1lv9xhxyhlqc262kffl55w08ms1cvxsnrv49zhvm0b799dsi0v0i-kadena-k-logo.png" style={{height:70, marginTop: 50}}/>
             <Header as="h6" style={{color:'black', fontWeight: 'bold', fontSize: 40, marginTop: 20}}>
               Command Preview
@@ -322,7 +379,7 @@
                   backgroundColor: "#B54FA3",
                   color: "white",
                   marginBottom: 10,
-                  marginTop: 10,
+                  marginTop: 20,
                   width: 340,
                   }}
                 loading={loading}
@@ -332,7 +389,7 @@
               Preview Transaction
             </Button>
             {(res === "") ? <div> </div> :
-              <div style={{ margin: 10, marginRight: 20, marginBottom: 50}}>
+              <div style={{ margin: 10, marginRight: 20, marginBottom: 10}}>
                  <Message style={{overflow: "auto", margin: "0 auto"}}>
                    <p style={{fontSize: "40px", wordBreak: "break-all"}}>
                      {res}
@@ -343,16 +400,12 @@
                  </Message>
               </div>
             }
-          </Grid.Column>
-        </Grid>
-        </div>
+            {showSend()}
+          </div>
         </Grid.Column>
 
-        <Grid.Column style={{backgroundColor: "	#99468A"}}>
-        <div
-          style={{overflow: "auto",
-          height: window.innerHeight + 50}}
-        >
+        <Grid.Column style={{overflow: "auto", backgroundColor: "	#99468A"}}>
+        <div style={{overflow: "auto", height: "100vh"}}>
         <Form>
         <Header as="h6" style={{color:'white', fontWeight: 'bold', fontSize: 30, marginLeft: 80, marginTop: 30, textAlign: 'center'}}>
           Pact
@@ -872,11 +925,10 @@
                   }
                 />
               </Form.Field>
-      </Form>
+          </Form>
         </div>
         </Grid.Column>
       </Grid>
-     </div>
    );
 
  }
