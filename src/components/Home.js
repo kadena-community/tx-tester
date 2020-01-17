@@ -40,6 +40,7 @@ import Pact from 'pact-lang-api'
    const [txFail, setTxFail] = useState(false);
    const [txPending, setTxPending] = useState(false);
    const [pollRes, setPollRes] = useState("");
+   const [showSendTab, setShowSendTab] = useState(false);
    const [bootstraps, setBootstraps] = useState(
      (savedNodes === null ? [
         { key: '0', value: 'us-e1.chainweb.com', text: 'us-e1.chainweb.com' },
@@ -269,6 +270,7 @@ import Pact from 'pact-lang-api'
       const sendCall = async () => {
         try {
           setSendLoading(true);
+          setShowSendTab(true);
           const envData = ksName !== "" ? {[ksName]: {"pred": pred, "keys": envKeys}} : {}
           const parsedCmd = JSON.parse(cmd)
           const sendCmd = {
@@ -306,11 +308,26 @@ import Pact from 'pact-lang-api'
         <Message.Header>
           {JSON.stringify(pollRes.result.status)}
         </Message.Header>
-        <p style={{wordBreak: "break-all"}}>{JSON.stringify(pollRes.result.data)}</p>
+        <div>
+          <p style={{wordBreak: "break-all"}}>{"Result: " + JSON.stringify(pollRes.result.data)}</p>
+        </div>
+        <div>
+          <p style={{wordBreak: "break-all"}}>{"Block Height: " + JSON.stringify(pollRes.metaData.blockHeight)}</p>
+        </div>
+        <div>
+          <p style={{wordBreak: "break-all"}}>{"Block Hash: " + JSON.stringify(pollRes.metaData.blockHash)}</p>
+        </div>
       </Message>
     </Tab.Pane> },
     { menuItem: 'JSON Response', render: () => <Tab.Pane>
-      {JSON.stringify(pollRes)}
+      <Message style={{marginTop: 5, marginBottom: 15}} info error={txFail}>
+        <Message.Header style={{marginTop: 5, marginBottom: 15}}>
+          {JSON.stringify(pollRes.result.status)}
+        </Message.Header>
+        <code style={{wordBreak: "break-all", color: "black", fontSize: 15, marginBottom: 5}}>
+          {JSON.stringify(pollRes,null,'\t')}
+        </code>
+      </Message>
     </Tab.Pane> },
   ] : [])
   //
@@ -360,7 +377,7 @@ import Pact from 'pact-lang-api'
             >
             Send Transaction
           </Button>
-          <Tab panes={reqKeyTabs} style={{marginBottom: 50}}/>
+          {(showSendTab ? <Tab panes={reqKeyTabs} style={{marginBottom: 350}}/> : <div></div>)}
         </div>
       )
     } else {
@@ -411,14 +428,14 @@ import Pact from 'pact-lang-api'
             </Button>
             {(res === "") ? <div> </div> :
               <div style={{ margin: 10, marginRight: 20, marginBottom: 10}}>
-                 <Message style={{overflow: "auto", margin: "0 auto"}}>
-                   <p style={{fontSize: "40px", wordBreak: "break-all"}}>
-                     {res}
-                  </p>
-                  <p style={{fontSize: "30px", wordBreak: "break-all"}}>
-                     {mess}
-                   </p>
-                 </Message>
+                <Message style={{marginTop: 5, marginBottom: 15}} info error={res !== "TX preview suceeded:"}>
+                  <Message.Header>
+                    {res}
+                  </Message.Header>
+                  <div>
+                    <p style={{wordBreak: "break-all"}}>{"Result: " + mess}</p>
+                  </div>
+                </Message>
               </div>
             }
             {showSend()}
