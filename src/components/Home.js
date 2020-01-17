@@ -1,6 +1,10 @@
- import React, { useState, useContext, useEffect } from 'react';
- import { Button, Grid, Input, Icon, Form, List, Modal, Header, Message, Popup, Select, Radio, Tab, TextArea } from 'semantic-ui-react';
- import Pact from 'pact-lang-api'
+import React, { useState, useContext, useEffect } from 'react';
+import { Button, Grid, Input, Icon, Form, List,
+   Modal, Header, Message, Popup, Select, Radio,
+   Tab, TextArea, Loader } from 'semantic-ui-react';
+import CmdTabs from './CmdTabs.js';
+import ViewYaml from './ViewYaml.js';
+import Pact from 'pact-lang-api'
 
  const savedNodes = localStorage.getItem('nodes');
 
@@ -32,6 +36,10 @@
    const [sendLoading, setSendLoading] = useState(false);
    const [cmd, setCmd] = useState("");
    const [reqKey, setReqKey] = useState("");
+   const [rkWarn, setRkWarn] = useState(false);
+   const [txFail, setTxFail] = useState(false);
+   const [txPending, setTxPending] = useState(false);
+   const [pollRes, setPollRes] = useState("");
    const [bootstraps, setBootstraps] = useState(
      (savedNodes === null ? [
         { key: '0', value: 'us-e1.chainweb.com', text: 'us-e1.chainweb.com' },
@@ -92,10 +100,7 @@
      if (nodes === null) {
        localStorage.setItem('nodes', JSON.stringify([url]))
      } else {
-       console.log(JSON.parse(nodes))
-       console.log(url)
        var filtered = JSON.parse(nodes).filter(x => x.value === url.value)
-       console.log(filtered)
        if (filtered.length === 0) {
          localStorage.setItem('nodes', JSON.stringify(JSON.parse(nodes).concat([url])));
        }
@@ -198,12 +203,19 @@
           var fileToLoad = document.getElementById("to-pub-file").files[0];
           if (fileToLoad.name.substr(fileToLoad.name.length - 4) !== ".kda" || fileToLoad.name.includes((isPub ? "private" : "public"))) {
             alert(`file must be a .kda ${(!isPub ? "private" : "public")} key file`)
-            document.getElementById("to-pub-file").files = ""
+            // document.getElementById("to-pub-file").files = ""
           }
           var fileReader = new FileReader();
           fileReader.onload = function(fileLoadedEvent){
               var textFromFileLoaded = fileLoadedEvent.target.result;
-              console.log(textFromFileLoaded)
+              // console.log(textFromFileLoaded)
+              if (isPub) {
+                setPubKey(textFromFileLoaded.replace("public: ", ""))
+              } else {
+                var keys = textFromFileLoaded.split("\n");
+                setPubKey(keys[0].replace("public: ", ""));
+                setPrivKey(keys[1].replace("secret: ", ""));
+              }
           };
           fileReader.readAsText(fileToLoad, "UTF-8");
         } catch (err) {
@@ -263,100 +275,92 @@
             "cmds": [ parsedCmd ]
           }
           const txRes = await fetch(`${host}/api/v1/send`, mkReq(sendCmd));
-          const res = await txRes.json();
-          console.log(res)
+          const reqKey = await txRes.json();
+          setReqKey(reqKey.requestKeys[0]);
           setSendLoading(false);
+          setTxPending(true)
+          pollCall(reqKey.requestKeys[0]);
         } catch(e) {
-
+          console.log(e)
+          setSendLoading(false);
+          setReqKey("Your requested transaction's inputs failed to validate. SEND TRANSACTIONS MUST BE SIGNED")
+          setRkWarn(true)
         }
       }
 
-  const panes = [
-    { menuItem: 'JSON', render: () => <Tab.Pane>
-    <div>
-      <div>
-        <Message warning={chainId === "" || pactCode === ""} positive={chainId !== "" || pactCode !== ""} style={{marginTop: 5, marginBottom: 5, fontWeight: "bold"}}>
-          <Message.Header style={{marginBottom: 10}}>
-            JSON Request Object
-          </Message.Header>
-          <code style={{wordBreak: "break-all", fontSize: 15,}}>
-            {cmd}
-          </code>
-          <Message.Header style={{marginBottom: 10, marginTop: 10}}>
-            API Host
-          </Message.Header>
-          <code style={{wordBreak: "break-all"}}>{(host === `https://${server}/chainweb/0.0/${ver}/chain//pact` ?  "Select Chain Id" : (ver === "not a chainweb node") ? "Select a valid Chainweb node" : host + "/api/v1/local")}</code>
-        </Message>
-      </div>
-    </div>
-    </Tab.Pane> },
-    { menuItem: 'curl cmd', render: () => <Tab.Pane>
-    <div>
-      <Message warning={chainId === "" || pactCode === ""} positive={chainId !== "" || pactCode !== ""} style={{marginTop: 5, marginBottom: 5}}>
-        <Message.Header style={{marginBottom: 10}}>
-          {(chainId === "" || pactCode === "" ? "Incomplete Curl Command (please fill in all parameters)" : "Complete Curl Command")}
-        </Message.Header>
-        <div style={{marginBottom: 5}}>
-        </div>
-        <code style={{wordBreak: "break-all", fontSize: 15, marginBottom: 20, fontWeight: "bold"}}>
-          {curlCmd()}
-        </code>
-      </Message>
-    </div>
-    </Tab.Pane> },
-    { menuItem: 'yaml', render: () => <Tab.Pane>
-    <div>
-      <div style={{}}>
-        <Header as="h1" style={{color:'black',  fontSize: 15, margin: 5}}>
-          <code style={{wordBreak: "break-all"}}>
-            coming soon!
-          </code>
-        </Header>
-        <div style={{margin: 20, marginBottom: 0}}>
-          <code style={{wordBreak: "break-all"}}>{(host === `https://${server}/chainweb/0.0/${ver}/chain//pact` ?  "Select Chain Id" : (ver === "not a chainweb node") ? "Select a valid Chainweb node" : host + "/api/v1/local")}</code>
-        </div>
-      </div>
-    </div>
-    </Tab.Pane> },
-  ]
+      const pollCall = async (rk) => {
+        try {
+          const res = await Pact.fetch.listen({ listen: rk }, host);
+          setTxPending(false);
+          res.result.status === "failure" ? setTxFail(true) : setTxFail(false);
+          setPollRes(res);
 
-  const reqKeyTabs = [
-    { menuItem: 'Request Key', render: () => <Tab.Pane>
-      <Message style={{marginTop: 5, marginBottom: 5}}>
+        } catch(e) {
+          console.log(e)
+        }
+      }
+
+  const resultTabs = (pollRes !== "" ? [
+    { menuItem: 'Result Summary', render: () => <Tab.Pane>
+      <Message style={{marginTop: 5, marginBottom: 15}} info error={txFail}>
         <Message.Header>
-          Request Key
+          {JSON.stringify(pollRes.result.status)}
+        </Message.Header>
+        <p style={{wordBreak: "break-all"}}>{JSON.stringify(pollRes.result.data)}</p>
+      </Message>
+    </Tab.Pane> },
+    { menuItem: 'JSON Response', render: () => <Tab.Pane>
+      {JSON.stringify(pollRes)}
+    </Tab.Pane> },
+  ] : [])
+  //
+  // const resultTabs = (true ? [
+  //   { menuItem: 'Result Summary', render: () => <Tab.Pane>
+  //     <Message style={{marginTop: 5, marginBottom: 15}} info error={txFail}>
+  //       <Message.Header>
+  //         success
+  //       </Message.Header>
+  //       <p style={{wordBreak: "break-all"}}>data</p>
+  //     </Message>
+  //   </Tab.Pane> },
+  //   { menuItem: 'Result JSON', render: () => <Tab.Pane>
+  //     <div>
+  //     </div>
+  //   </Tab.Pane> },
+  // ] : [])
+
+  const reqKeyTabs = resultTabs.concat([
+    { menuItem: 'Request Key', render: () => <Tab.Pane>
+      <Message style={{marginTop: 5, marginBottom: 25}} info error={rkWarn}>
+        <Message.Header>
+          {(!rkWarn ? "Request Key" : "Send Failure")}
         </Message.Header>
         <p style={{wordBreak: "break-all"}}>{reqKey}</p>
+        {(txPending ? <div><p>Please wait your transaction is being mined....</p><Loader active inline/></div> : <div></div>)}
       </Message>
     </Tab.Pane> },
     { menuItem: 'Poll curl cmd', render: () => <Tab.Pane></Tab.Pane> },
-  ]
-
-  const resultTabs = [
-    { menuItem: 'Result Summary', render: () => <Tab.Pane></Tab.Pane> },
-    { menuItem: 'JSON Response', render: () => <Tab.Pane></Tab.Pane> },
-  ]
+  ])
 
   const showSend = () => {
-    if (res !== "TX preview suceeded:") {
+    if (res === "TX preview suceeded:") {
       return (
         <div>
           <Button
               style={{
                 backgroundColor: "#B54FA3",
                 color: "white",
-                marginBottom: 10,
-                marginTop: 10,
+                marginBottom: 20,
+                marginTop: 20,
                 width: 340,
                 }}
               loading={sendLoading}
               onClick={() => sendCall()}
-              disabled={sendLoading}
+              disabled={txPending}
             >
             Send Transaction
           </Button>
-          <Tab panes={reqKeyTabs}/>
-          <Tab panes={resultTabs}/>
+          <Tab panes={reqKeyTabs} style={{marginBottom: 50}}/>
         </div>
       )
     } else {
@@ -372,7 +376,24 @@
             <Header as="h6" style={{color:'black', fontWeight: 'bold', fontSize: 40, marginTop: 20}}>
               Command Preview
             </Header>
-            <Tab panes={panes}/>
+            <CmdTabs
+              pactCode={pactCode}
+              caps={caps}
+              server={server}
+              ver={ver}
+              acct={acct}
+              pubKey={pubKey}
+              privKey={privKey}
+              chainId={chainId}
+              creationTime={creationTime}
+              ttl={ttl}
+              gasPrice={gasPrice}
+              gasLimit={gasLimit}
+              envKeys={envKeys}
+              pred={pred}
+              ksName={ksName}
+              cmd={cmd}
+              host={host}/>
 
             <Button
                 style={{
@@ -407,10 +428,10 @@
         <Grid.Column style={{overflow: "auto", backgroundColor: "	#99468A"}}>
         <div style={{overflow: "auto", height: "100vh"}}>
         <Form>
-        <Header as="h6" style={{color:'white', fontWeight: 'bold', fontSize: 30, marginLeft: 80, marginTop: 30, textAlign: 'center'}}>
+        <Header as="h6" style={{color:'white', fontWeight: 'bold', fontSize: 30, marginTop: 30, textAlign: 'center'}}>
           Pact
         </Header>
-        <Form.Field  style={{width:"240px", margin: "0 auto", marginTop: "10px"}} >
+        <Form.Field  style={{width:"440px", margin: "0 auto", marginTop: "10px"}} >
           <label style={{color: "white"}}>Pact Code
             <Popup
               trigger={
@@ -423,18 +444,18 @@
             </Popup>
           </label>
           <TextArea
-            style={{width:"340px", height: "150px", wordBreak: "break-all"}}
-            placeholder='                                                                                           (coin.details "nick-cage")                                            (coin.transfer "from" "to" 12.4)                                          (coin.tranfer-create "from" "to" (read-keyset "to-ks") 4.2)                                                                            (coin.create-account "my-new-acct" (read-keyset "my-new-ks"))'
+            style={{width:"440px", height: "200px", wordBreak: "break-all"}}
+            placeholder='                                                                                                        ;;coin contract examples:                                                                                  (coin.details "nick-cage")                                                                                                                                  (coin.transfer "from" "to" 12.4)                                                                              (coin.transfer-create "from" "to" (read-keyset "to-ks") 4.2)                                                                            (coin.create-account "my-new-acct" (read-keyset "my-new-ks"))                           ;;arbitrary contract calls:                                                                                  (free.my-contract-name.foo "param-one" "param-two")                           (user.my-contract-name.bar [list, of, stuff] 1.0)                               '
             value={pactCode}
             onChange={(e) => setPactCode(e.target.value)}
           />
         </Form.Field>
         </Form>
         <Form onKeyPress={e => {if (e.key === 'Enter') e.preventDefault()}}>
-        <Header as="h6" style={{color:'white', fontWeight: 'bold', fontSize: 30, marginLeft: 80, marginTop: 30,textAlign: 'center'}}>
+        <Header as="h6" style={{color:'white', fontWeight: 'bold', fontSize: 30, marginTop: 30,textAlign: 'center'}}>
           Signing
         </Header>
-        <Form.Field style={{width:"240px", margin: "0 auto", marginTop: "10px"}}>
+        <Form.Field style={{width:"440px", margin: "0 auto", marginTop: "10px"}}>
           <label style={{color: "white"}}>Account Name
             <Popup
               trigger={
@@ -447,7 +468,7 @@
             </Popup>
           </label>
           <Form.Input
-            style={{width:"340px"}}
+            style={{width:"440px"}}
             icon='user'
             iconPosition='left'
             placeholder='Account Name'
@@ -455,7 +476,7 @@
             onChange={(e) => setAcct(e.target.value)}
           />
         </Form.Field>
-        <Form.Field style={{width:"240px", margin: "0 auto", marginTop: "10px"}}>
+        <Form.Field style={{width:"440px", margin: "0 auto", marginTop: "10px"}}>
             <Form.Field>
               <Radio
                 label={
@@ -465,7 +486,7 @@
                         <Icon name='help circle' style={{"marginLeft": "2px"}}/>
                       }
                       position='top center'
-                      style={{width: "340px"}}
+                      style={{width: "440px"}}
                     >
                       <Popup.Header>What is a Keypair?</Popup.Header>
                       <Popup.Content>A keypair is composed of a public key and a private key. If you don't have a keypair, generate one in the Kadena wallet, or click 'Generate' for tx's that don't require a particular account to sign it. For example, to do a (coin.transfer "to" "from" 1.0) you must sign with the keys assosciated with the transfering account, but to do an account info call such as (coin.details "nick-cage"), you can sign with a dummy key pair as there are no capabilities assosciated with this transaction</Popup.Content>
@@ -485,7 +506,7 @@
                         <Icon name='help circle' style={{"marginLeft": "2px"}}/>
                       }
                       position='top center'
-                      style={{width: "340px"}}
+                      style={{width: "440px"}}
                     >
                       <Popup.Header>What is a Signature?</Popup.Header>
                       <Popup.Content>This is a safe way to sign your transaction offline without pasting your private on the web. Once you fill in all the parameters for your desired trasaction you will be provided a hash that you can copy and sign offline with the Chainweaver wallet or pact cli. You must sign with the corresponding private key of the public key provided.</Popup.Content>
@@ -502,7 +523,7 @@
               placeholder='Public Key'
               icon="key"
               iconPosition="left"
-              style={{width: "340px"}}
+              style={{width: "440px"}}
               value={pubKey}
               onChange={(e) => setPubKey(e.target.value)}
             />
@@ -512,13 +533,13 @@
                 placeholder='Private Key'
                 icon="lock"
                 iconPosition="left"
-                style={{marginTop: 5, width: "340px"}}
+                style={{marginTop: 5, width: "440px"}}
                 value={privKey}
                 onChange={(e) => setPrivKey(e.target.value)}
               />
               <div style={{display:"flex",flexDirection: "row"}}>
               <input
-                style={{marginTop: 5, width: "227px", flex: 1}}
+                style={{marginTop: 5, width: "270px", flex: 1}}
                 id="to-pub-file"
                 type="file"
                 onChange={(e) => toPubLoad(false)}/>
@@ -528,7 +549,7 @@
                     // backgroundColor: "grey",
                     // color: "white",
                     marginTop: 5,
-                    marginRight: 5,
+                    marginRight: 0,
                     marginLeft: 5,
                     width: 270,
                     flex: 1,
@@ -537,8 +558,8 @@
                     }}
                   onClick={() => generateAccount()}
                 >
-                <Message.Header>
-                Generate
+                <Message.Header style={{textAlign:"center"}}>
+                  Generate
                 </Message.Header>
               </Message>
               </div>
@@ -546,11 +567,11 @@
             :
             <div>
               <input
-                style={{marginTop: 5, width: "340px"}}
+                style={{marginTop: 5, width: "440px"}}
                 id="to-pub-file"
                 type="file"
                 onChange={(e) => toPubLoad(true)}/>
-              <Message color='purple' style={{marginTop: 5, marginBottom: 5, width: "340px"}}>
+              <Message color='purple' style={{marginTop: 5, marginBottom: 5, width: "440px", textAlign:"center"}}>
                 <Message.Header>
                   Hash to Sign
                   <Button
@@ -568,7 +589,7 @@
                 placeholder='TX Signature'
                 icon="pencil alternate"
                 iconPosition="left"
-                style={{width: "340px"}}
+                style={{width: "440px"}}
                 value={sigText}
                 onChange={(e) => setSigText(e.target.value)}
               />
@@ -576,14 +597,14 @@
           }
           </Form.Field>
 
-          <Form.Field style={{width:"240px", margin: "0 auto", marginTop: "10px"}}>
+          <Form.Field style={{width:"440px", margin: "0 auto", marginTop: "10px"}}>
               <label style={{color: "white"}}>Capabilities
                 <Popup
                   trigger={
                     <Icon name='help circle' style={{"marginLeft": "2px"}}/>
                   }
                   position='top center'
-                  style={{width: "340px"}}
+                  style={{width: "440px"}}
                 >
                   <Popup.Header>What is a Capability?</Popup.Header>
                   <Popup.Content>In Pact, a capability is a way to scope what the signing keypairs are allowed to perform in code. The defauly capability is GAS, as all transactions need to have a keypair signing for the gas fee. Another standard capability is the TRANSFER capability that requires a user to specify a from-account, to-account, and amount. This means that you are allowing the scoped signature to only perform the transfer amount specified. Example: <b>(coin.TRANSFER "from-account" "to-account" 10.0)</b></Popup.Content>
@@ -596,7 +617,7 @@
                     key={i}
                     icon="code"
                     iconPosition="left"
-                    style={{width: "340px", marginTop: (i === 0 ? 0 : 5)}}
+                    style={{width: "440px", marginTop: (i === 0 ? 0 : 5)}}
                     value={v}
                     action={
                        <Button
@@ -615,7 +636,7 @@
                 placeholder='(coin.TRANSFER "from" "to" 1.0)'
                 icon="code"
                 iconPosition="left"
-                style={{width: "340px", marginTop: 5}}
+                style={{width: "440px", marginTop: 5}}
                 value={tempCap}
                 onChange={(e) => setTempCap(e.target.value)}
                 onClose={(e, {value }) => {
@@ -633,10 +654,10 @@
                  }
               />
             </Form.Field>
-            <Header as="h6" style={{color:'white', fontWeight: 'bold', fontSize: 30, marginLeft: 80, marginTop: 30,textAlign: 'center'}}>
+            <Header as="h6" style={{color:'white', fontWeight: 'bold', fontSize: 30, marginTop: 30,textAlign: 'center'}}>
               Network
             </Header>
-            <Form.Field style={{width:"240px", margin: "0 auto", marginTop: "10px"}}>
+            <Form.Field style={{width:"440px", margin: "0 auto", marginTop: "10px"}}>
               <label style={{color: "white"}}>Server
                 <Popup
                   trigger={
@@ -649,7 +670,7 @@
                 </Popup>
               </label>
               <Select
-                style={{width:"340px"}}
+                style={{width:"440px"}}
                 placeholder='Server'
                 search={true}
                 onClose={(e, {value }) => {
@@ -675,7 +696,7 @@
                 }}
               />
             </Form.Field>
-            <Form.Field style={{width:"240px", margin: "0 auto", marginTop: "10px"}}>
+            <Form.Field style={{width:"440px", margin: "0 auto", marginTop: "10px"}}>
               <label style={{color: "white"}}>Version
                 <Popup
                   trigger={
@@ -688,7 +709,7 @@
                 </Popup>
               </label>
               <Form.Input
-                style={{width:"340px"}}
+                style={{width:"440px"}}
                 icon='sync'
                 iconPosition='left'
                 placeholder='Version'
@@ -696,10 +717,10 @@
                 // onChange={(e) => setVer(e.target.value)}
               />
             </Form.Field>
-            <Header as="h6" style={{color:'white', fontWeight: 'bold', fontSize: 30, marginLeft: 80, marginTop: 30,textAlign: 'center'}}>
+            <Header as="h6" style={{color:'white', fontWeight: 'bold', fontSize: 30, marginTop: 30,textAlign: 'center'}}>
               Meta Data
             </Header>
-            <Form.Field style={{width:"240px", margin: "0 auto", marginTop: "10px"}}>
+            <Form.Field style={{width:"440px", margin: "0 auto", marginTop: "10px"}}>
               <label style={{color: "white"}}>Chain ID
                 <Popup
                   trigger={
@@ -712,13 +733,13 @@
                 </Popup>
               </label>
               <Select
-                style={{width:"340px"}}
+                style={{width:"440px"}}
                 placeholder='Chain ID'
                 options={chainIds}
                 onChange={(e, { value }) => setChainId(value)}
               />
             </Form.Field>
-            <Form.Field style={{width:"240px", margin: "0 auto", marginTop: "10px"}}>
+            <Form.Field style={{width:"440px", margin: "0 auto", marginTop: "10px"}}>
               <label style={{color: "white"}}>Sender
                 <Popup
                   trigger={
@@ -731,7 +752,7 @@
                 </Popup>
               </label>
               <Form.Input
-                style={{width:"340px"}}
+                style={{width:"440px"}}
                 icon='user'
                 iconPosition='left'
                 placeholder='Sender'
@@ -739,7 +760,7 @@
                 // onChange={(e) => setCreationTime((!isNaN(parseFloat(e.target.value)) ? parseFloat(e.target.value) : ""))}
               />
             </Form.Field>
-            <Form.Field style={{width:"240px", margin: "0 auto", marginTop: "10px"}}>
+            <Form.Field style={{width:"440px", margin: "0 auto", marginTop: "10px"}}>
               <label style={{color: "white"}}>Creation Time
                 <Popup
                   trigger={
@@ -752,7 +773,7 @@
                 </Popup>
               </label>
               <Form.Input
-                style={{width:"340px"}}
+                style={{width:"440px"}}
                 icon='calendar'
                 iconPosition='left'
                 placeholder='Creation Time'
@@ -760,7 +781,7 @@
                 onChange={(e) => setCreationTime((!isNaN(parseFloat(e.target.value)) ? parseFloat(e.target.value) : ""))}
               />
             </Form.Field>
-            <Form.Field style={{width:"240px", margin: "0 auto", marginTop: "10px"}}>
+            <Form.Field style={{width:"440px", margin: "0 auto", marginTop: "10px"}}>
               <label style={{color: "white"}}>TTL
                 <Popup
                   trigger={
@@ -773,7 +794,7 @@
                 </Popup>
               </label>
               <Form.Input
-                style={{width:"340px"}}
+                style={{width:"440px"}}
                 icon='clock'
                 iconPosition='left'
                 placeholder='Time To Live'
@@ -781,7 +802,7 @@
                 onChange={(e) => setTtl((!isNaN(parseFloat(e.target.value)) ? parseFloat(e.target.value) : ""))}
               />
             </Form.Field>
-            <Form.Field style={{width:"240px", margin: "0 auto", marginTop: "10px"}}>
+            <Form.Field style={{width:"440px", margin: "0 auto", marginTop: "10px"}}>
               <label style={{color: "white"}}>Gas Price
                 <Popup
                   trigger={
@@ -794,7 +815,7 @@
                 </Popup>
               </label>
               <Form.Input
-                style={{width:"340px"}}
+                style={{width:"440px"}}
                 icon='dollar sign'
                 iconPosition='left'
                 placeholder='Gas Price'
@@ -807,7 +828,7 @@
                 }}
               />
             </Form.Field>
-            <Form.Field style={{width:"240px", margin: "0 auto", marginTop: "10px"}}>
+            <Form.Field style={{width:"440px", margin: "0 auto", marginTop: "10px"}}>
               <label style={{color: "white"}}>Gas Limit
                 <Popup
                   trigger={
@@ -820,7 +841,7 @@
                 </Popup>
               </label>
               <Form.Input
-                style={{width:"340px"}}
+                style={{width:"440px"}}
                 icon='tint'
                 iconPosition='left'
                 placeholder='Gas Limit'
@@ -828,10 +849,10 @@
                 onChange={(e) => setGasLimit((!isNaN(parseFloat(e.target.value)) ? parseFloat(e.target.value) : ""))}
               />
             </Form.Field>
-            <Header as="h6" style={{color:'white', fontWeight: 'bold', fontSize: 30, marginLeft: 80, marginTop: 30,textAlign: 'center'}}>
+            <Header as="h6" style={{color:'white', fontWeight: 'bold', fontSize: 30, marginTop: 30,textAlign: 'center'}}>
               Env Data (Advanced)
             </Header>
-            <Form.Field style={{width:"240px", margin: "0 auto", marginTop: "10px"}}>
+            <Form.Field style={{width:"440px", margin: "0 auto", marginTop: "10px"}}>
               <label style={{color: "white"}}>Keyset Name
                 <Popup
                   trigger={
@@ -847,12 +868,12 @@
                 placeholder='Keyset Name'
                 icon="copy"
                 iconPosition="left"
-                style={{width: "340px"}}
+                style={{width: "440px"}}
                 value={ksName}
                 onChange={(e) => setKsName(e.target.value)}
               />
             </Form.Field>
-            <Form.Field style={{width:"240px", margin: "0 auto", marginTop: "10px"}}>
+            <Form.Field style={{width:"440px", margin: "0 auto", marginTop: "10px"}}>
               <label style={{color: "white"}}>Keyset Predicate
                 <Popup
                   trigger={
@@ -865,20 +886,20 @@
                 </Popup>
               </label>
               <Select
-                style={{width:"340px"}}
+                style={{width:"440px"}}
                 placeholder='Predicate'
                 options={preds}
                 onChange={(e, { value }) => setPred(value)}
               />
             </Form.Field>
-            <Form.Field style={{width:"240px", margin: "0 auto", marginTop: "10px"}}>
+            <Form.Field style={{width:"440px", margin: "0 auto", marginTop: "10px"}}>
                 <label>Public Key
                   <Popup
                     trigger={
                       <Icon name='help circle' style={{"marginLeft": "2px"}}/>
                     }
                     position='top center'
-                    style={{width: "340px"}}
+                    style={{width: "440px"}}
                   >
                     <Popup.Header>What is this Public Key?</Popup.Header>
                     <Popup.Content>This is the public key that you are assosicating to the given account. You can assosciate more than one key for each account to allow for multi-sig</Popup.Content>
@@ -891,7 +912,7 @@
                       key={i}
                       icon="key"
                       iconPosition="left"
-                      style={{width: "340px", marginTop: (i === 0 ? 0 : 5)}}
+                      style={{width: "440px", marginTop: (i === 0 ? 0 : 5)}}
                       value={v}
                       action={
                          <Button
@@ -909,7 +930,7 @@
                   placeholder='Public Key'
                   icon="key"
                   iconPosition="left"
-                  style={{width: "340px", marginTop: 5, marginBottom: 100}}
+                  style={{width: "440px", marginTop: 5, marginBottom: 100}}
                   value={tempKey}
                   // onChange={(e) => setEnvKeys([...envKeys, e.target.value])}
                   onChange={(e) => setTempKey(e.target.value)}
@@ -935,3 +956,77 @@
 
 
 export default Home;
+
+
+// <Tab panes={panes}/>
+//
+  //
+  //
+  //
+  // const panes = [
+  //   { menuItem: 'JSON', render: () => <Tab.Pane>
+  //   <div>
+  //     <div>
+  //       <Message warning={chainId === "" || pactCode === ""} positive={chainId !== "" || pactCode !== ""} style={{marginTop: 5, marginBottom: 5, fontWeight: "bold"}}>
+  //         <Message.Header style={{marginBottom: 10}}>
+  //           {(chainId === "" || pactCode === "" ? "JSON Request Object (incomplete)" : "JSON Request Object")}
+  //         </Message.Header>
+  //         <code style={{wordBreak: "break-all", fontSize: 15,}}>
+  //           {cmd}
+  //         </code>
+  //         <Message.Header style={{marginBottom: 10, marginTop: 10}}>
+  //           API Host
+  //         </Message.Header>
+  //         <code style={{wordBreak: "break-all"}}>{(host === `https://${server}/chainweb/0.0/${ver}/chain//pact` ?  "Select Chain Id" : (ver === "not a chainweb node") ? "Select a valid Chainweb node" : host + "/api/v1/local")}</code>
+  //       </Message>
+  //     </div>
+  //   </div>
+  //   </Tab.Pane> },
+  //   { menuItem: 'curl cmd', render: () => <Tab.Pane>
+  //   <div>
+  //     <Message warning={chainId === "" || pactCode === ""} positive={chainId !== "" || pactCode !== ""} style={{marginTop: 5, marginBottom: 5}}>
+  //       <Message.Header style={{marginBottom: 10}}>
+  //         {(chainId === "" || pactCode === "" ? "Curl Command (incomplete)" : "Curl Command")}
+  //       </Message.Header>
+  //       <div style={{marginBottom: 5}}>
+  //       </div>
+  //       <code style={{wordBreak: "break-all", fontSize: 15, marginBottom: 20, fontWeight: "bold"}}>
+  //         {curlCmd()}
+  //       </code>
+  //     </Message>
+  //   </div>
+  //   </Tab.Pane> },
+  //   { menuItem: 'yaml', render: () => <Tab.Pane>
+  //   <div>
+  //     <Message warning={chainId === "" || pactCode === ""} positive={chainId !== "" || pactCode !== ""} style={{marginTop: 5, marginBottom: 5}}>
+  //       <Message.Header style={{marginBottom: 10}}>
+  //         {(chainId === "" || pactCode === "" ? "YAML Request Format (incomplete)" : "YAML Request Format")}
+  //       </Message.Header>
+  //       <ViewYaml
+  //         pactCode={pactCode}
+  //         caps={caps}
+  //         server={server}
+  //         ver={ver}
+  //         acct={acct}
+  //         pubKey={pubKey}
+  //         privKey={privKey}
+  //         chainId={chainId}
+  //         creationTime={creationTime}
+  //         ttl={ttl}
+  //         gasPrice={gasPrice}
+  //         gasLimit={gasLimit}
+  //         envKeys={envKeys}
+  //         pred={pred}
+  //         ksName={ksName}
+  //         host={host}
+  //         />
+  //       <Message.Header style={{marginBottom: 10, marginTop: 10}}>
+  //         API Host
+  //       </Message.Header>
+  //       <div style={{margin: 20, marginBottom: 0}}>
+  //         <code style={{wordBreak: "break-all"}}>{(host === `https://${server}/chainweb/0.0/${ver}/chain//pact` ?  "Select Chain Id" : (ver === "not a chainweb node") ? "Select a valid Chainweb node" : host + "/api/v1/local")}</code>
+  //       </div>
+  //     </Message>
+  //   </div>
+  //   </Tab.Pane> },
+  // ]
