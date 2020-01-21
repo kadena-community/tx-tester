@@ -40,6 +40,7 @@ import Pact from 'pact-lang-api'
    const [txFail, setTxFail] = useState(false);
    const [txPending, setTxPending] = useState(false);
    const [pollRes, setPollRes] = useState("");
+   const [canSend, setCanSend] = useState(false);
    const [showSendTab, setShowSendTab] = useState(false);
    const [bootstraps, setBootstraps] = useState(
      (savedNodes === null ? [
@@ -72,7 +73,7 @@ import Pact from 'pact-lang-api'
    );
    useEffect(() => {
      setCmd(showCmd())
-   }, [pactCode, caps, sig, sigText, ver, acct, pubKey, privKey, chainId, ttl, gasPrice, gasLimit, envKeys, pred])
+   }, [pactCode, caps, sig, sigText, ver, acct, pubKey, privKey, chainId, ttl, gasPrice, gasLimit, envKeys, pred, rkWarn])
 
    var mkReq = function(cmd) {
      return {
@@ -227,7 +228,14 @@ import Pact from 'pact-lang-api'
 
       const localCall = async () => {
         try {
+          setReqKey("");
+          setRkWarn(false);
+          setTxFail(false);
+          setTxPending(false);
+          setPollRes("");
           setLoading(true);
+          setRes("");
+          setShowSendTab(false);
           const envData = ksName !== "" ? {[ksName]: {"pred": pred, "keys": envKeys}} : {}
           // const res = await Pact.fetch.local({
           //   pactCode: pactCode.replace("\n", ""),
@@ -248,6 +256,7 @@ import Pact from 'pact-lang-api'
           } else {
             setRes("TX preview suceeded:")
             setMess(JSON.stringify(res.result.data))
+            setCanSend(true);
           }
         } catch (e) {
           setLoading(false);
@@ -268,7 +277,9 @@ import Pact from 'pact-lang-api'
       }
 
       const sendCall = async () => {
+        setCanSend(false);
         try {
+          setRkWarn(false);
           setSendLoading(true);
           setShowSendTab(true);
           const envData = ksName !== "" ? {[ksName]: {"pred": pred, "keys": envKeys}} : {}
@@ -285,7 +296,7 @@ import Pact from 'pact-lang-api'
         } catch(e) {
           console.log(e)
           setSendLoading(false);
-          setReqKey("Your requested transaction's inputs failed to validate. SEND TRANSACTIONS MUST BE SIGNED")
+          setReqKey("Your requested transaction's inputs failed to validate. If your preview is succeeding and you are seeing this message it is because SEND TRANSACTIONS MUST BE SIGNED")
           setRkWarn(true)
         }
       }
@@ -306,7 +317,7 @@ import Pact from 'pact-lang-api'
     { menuItem: 'Result Summary', render: () => <Tab.Pane>
       <Message style={{marginTop: 5, marginBottom: 15}} info error={txFail}>
         <Message.Header>
-          {JSON.stringify(pollRes.result.status)}
+          {JSON.stringify(pollRes.result.status.replace("\"", ""))}
         </Message.Header>
         <div>
           <p style={{wordBreak: "break-all"}}>{"Result: " + JSON.stringify(pollRes.result.data)}</p>
@@ -352,11 +363,38 @@ import Pact from 'pact-lang-api'
         <Message.Header>
           {(!rkWarn ? "Request Key" : "Send Failure")}
         </Message.Header>
-        <p style={{wordBreak: "break-all"}}>{reqKey}</p>
+        <p>{reqKey}</p>
         {(txPending ? <div><p>Please wait your transaction is being mined....</p><Loader active inline/></div> : <div></div>)}
       </Message>
     </Tab.Pane> },
-    { menuItem: 'Poll curl cmd', render: () => <Tab.Pane></Tab.Pane> },
+    { menuItem: 'Poll curl cmd', render: () => <Tab.Pane>
+    <Message style={{marginTop: 5, marginBottom: 25}} info error={rkWarn}>
+      <Message.Header style={{marginBottom: 10}}>
+        {(!rkWarn ? "Poll Curl Command" : "Send Failure")}
+      </Message.Header>
+      {(!rkWarn ?
+        <code style={{wordBreak: "break-all", color: "black", fontSize: 15, marginTop: 15, marginBottom: 20}}>
+          {`curl -sk -H \"Content-Type: application/json\" -d '{"requestKeys": ["${reqKey}"]}' -X POST ${(host === `https://${server}/chainweb/0.0/${ver}/chain//pact` ?  "Select Chain Id" : (ver === "not a chainweb node") ? "Select a valid Chainweb node" : host + "/api/v1/poll")}`}
+        </code>
+        :
+        "TX must make it to the mempool to see Poll Curl Command")}
+      {(txPending ? <div><p>Please wait your transaction is being mined....</p><Loader active inline/></div> : <div></div>)}
+    </Message>
+    </Tab.Pane> },
+    { menuItem: 'Listen curl cmd', render: () => <Tab.Pane>
+    <Message style={{marginTop: 5, marginBottom: 25}} info error={rkWarn}>
+      <Message.Header style={{marginBottom: 10}}>
+        {(!rkWarn ? "Listen Curl Command" : "Send Failure")}
+      </Message.Header>
+      {(!rkWarn ?
+        <code style={{wordBreak: "break-all", color: "black", fontSize: 15, marginTop: 15, marginBottom: 20}}>
+          {`curl -sk -H \"Content-Type: application/json\" -d '{"listen": "${reqKey}"}' -X POST ${(host === `https://${server}/chainweb/0.0/${ver}/chain//pact` ?  "Select Chain Id" : (ver === "not a chainweb node") ? "Select a valid Chainweb node" : host + "/api/v1/listen")}`}
+        </code>
+        :
+        "TX must make it to the mempool to see Listen Curl Command")}
+      {(txPending ? <div><p>Please wait your transaction is being mined....</p><Loader active inline/></div> : <div></div>)}
+    </Message>
+    </Tab.Pane> }
   ])
 
   const showSend = () => {
@@ -373,9 +411,9 @@ import Pact from 'pact-lang-api'
                 }}
               loading={sendLoading}
               onClick={() => sendCall()}
-              disabled={txPending}
+              disabled={(txPending || !canSend)}
             >
-            Send Transaction
+            {(canSend ? "Send Transaction" : "Please Preview Again")}
           </Button>
           {(showSendTab ? <Tab panes={reqKeyTabs} style={{marginBottom: 350}}/> : <div></div>)}
         </div>
