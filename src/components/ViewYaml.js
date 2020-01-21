@@ -14,8 +14,8 @@ const ViewYaml = (props) => {
         </code>
       </div>
       <div style={{textAlign: "left"}}>
-        <code style={{wordBreak: "break-all"}}>
-          {props.pactCode}
+        <code style={{wordBreak: "break-all", whiteSpace: "pre"}}>
+          {"  " + props.pactCode}
         </code>
       </div>
       {(props.ksName !== "" ?
@@ -26,18 +26,18 @@ const ViewYaml = (props) => {
             </code>
           </div>
           <div style={{textAlign: "left"}}>
-            <code style={{wordBreak: "break-all"}}>
-              {props.ksName + ":"}
+            <code style={{wordBreak: "break-all", whiteSpace: "pre"}}>
+              {"  " + props.ksName + ":"}
             </code>
           </div>
           <div style={{textAlign: "left"}}>
-            <code style={{wordBreak: "break-all"}}>
-              {"keys: [" + props.envKeys + "]"}
+            <code style={{wordBreak: "break-all" , whiteSpace: "pre"}}>
+              {"    keys: [" + props.envKeys + "]"}
             </code>
           </div>
           <div style={{textAlign: "left"}}>
-            <code style={{wordBreak: "break-all"}}>
-              {"pred: \"" + props.pred + "\""}
+            <code style={{wordBreak: "break-all", whiteSpace: "pre"}}>
+              {"    pred: \"" + props.pred + "\""}
             </code>
           </div>
         </div>
@@ -48,28 +48,28 @@ const ViewYaml = (props) => {
         </code>
       </div>
       <div style={{textAlign: "left"}}>
-        <code style={{wordBreak: "break-all"}}>
-          {' '}{"chainId: \"" + props.chainId + "\""}
+        <code style={{wordBreak: "break-all", whiteSpace: "pre"}}>
+         {"  chainId: \"" + props.chainId + "\""}
         </code>
       </div>
       <div style={{textAlign: "left"}}>
-        <code style={{wordBreak: "break-all"}}>
-          {"sender: " + props.acct}
+        <code style={{wordBreak: "break-all", whiteSpace: "pre"}}>
+          {"  sender: " + props.acct}
         </code>
       </div>
       <div style={{textAlign: "left"}}>
-        <code style={{wordBreak: "break-all"}}>
-          {"gasLimit: " + props.gasLimit}
+        <code style={{wordBreak: "break-all", whiteSpace: "pre"}}>
+          {"  gasLimit: " + props.gasLimit}
         </code>
       </div>
       <div style={{textAlign: "left"}}>
-        <code style={{wordBreak: "break-all"}}>
-          {"gasPrice: " + props.gasPrice}
+        <code style={{wordBreak: "break-all", whiteSpace: "pre"}}>
+          {"  gasPrice: " + props.gasPrice}
         </code>
       </div>
       <div style={{textAlign: "left"}}>
-        <code style={{wordBreak: "break-all"}}>
-          {"ttl: " + props.ttl}
+        <code style={{wordBreak: "break-all", whiteSpace: "pre"}}>
+          {"  ttl: " + props.ttl}
         </code>
       </div>
       <div style={{textAlign: "left"}}>
@@ -83,15 +83,15 @@ const ViewYaml = (props) => {
         </code>
       </div>
       <div style={{textAlign: "left"}}>
-        <code style={{wordBreak: "break-all"}}>
-          {"- public: " + props.pubKey}
+        <code style={{wordBreak: "break-all", whiteSpace: "pre"}}>
+          {"  - public: " + props.pubKey}
         </code>
       </div>
       {props.caps.length > 0 ?
         <div>
           <div style={{textAlign: "left"}}>
-            <code style={{wordBreak: "break-all"}}>
-              caps:
+            <code style={{wordBreak: "break-all", whiteSpace: "pre"}}>
+              {"    caps:"}
             </code>
           </div>
           {props.caps.map((cap, i) => {
@@ -99,13 +99,13 @@ const ViewYaml = (props) => {
             return (
               <div key={i}>
                 <div style={{textAlign: "left"}}>
-                  <code style={{wordBreak: "break-all"}}>
-                    {"- name: " + strs.shift()}
+                  <code style={{wordBreak: "break-all", whiteSpace: "pre"}}>
+                    {"      - name: " + strs.shift()}
                   </code>
                 </div>
                 <div style={{textAlign: "left"}}>
-                  <code style={{wordBreak: "break-all"}}>
-                    {"args: [" + strs.map((str) => isNaN(str) ? str : parseFloat(str)) + "]"}
+                  <code style={{wordBreak: "break-all", whiteSpace: "pre"}}>
+                    {"        args: [" + strs.map((str) => isNaN(str) ? str : parseFloat(str)) + "]"}
                   </code>
                 </div>
               </div>

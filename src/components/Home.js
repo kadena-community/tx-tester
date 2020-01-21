@@ -473,15 +473,15 @@ import Pact from 'pact-lang-api'
           Signing
         </Header>
         <Form.Field style={{width:"440px", margin: "0 auto", marginTop: "10px"}}>
-          <label style={{color: "white"}}>Account Name
+          <label style={{color: "white"}}>Sender Account
             <Popup
               trigger={
                 <Icon name='help circle' style={{"marginLeft": "2px"}}/>
               }
               position='top center'
             >
-              <Popup.Header>What is an Account Name? </Popup.Header>
-              <Popup.Content>Account name is how you identify yourself in chainweb. You'll be asked to sign with associated key/keys when you make transactions. Account names need to be unique and are assosciated to keypairs that can sign its transactions</Popup.Content>
+              <Popup.Header>What is the Sender Account? </Popup.Header>
+              <Popup.Content>Sender Account represents the account name you use to identify yourself in chainweb. You'll be asked to sign with associated key/keys when you make transactions. Account names need to be unique and are assosciated to keypairs that can sign its transactions. The simplest way would be to use your public key as your account name</Popup.Content>
             </Popup>
           </label>
           <Form.Input
@@ -506,7 +506,7 @@ import Pact from 'pact-lang-api'
                       style={{width: "440px"}}
                     >
                       <Popup.Header>What is a Keypair?</Popup.Header>
-                      <Popup.Content>A keypair is composed of a public key and a private key. If you don't have a keypair, generate one in the Kadena wallet, or click 'Generate' for tx's that don't require a particular account to sign it. For example, to do a (coin.transfer "to" "from" 1.0) you must sign with the keys assosciated with the transfering account, but to do an account info call such as (coin.details "nick-cage"), you can sign with a dummy key pair as there are no capabilities assosciated with this transaction</Popup.Content>
+                      <Popup.Content>A keypair is composed of a public key and a private key. If you don't have a keypair, generate one in the Kadena wallet, or click 'Generate' for tx's that don't require a particular account to sign it. For example, to do a (coin.transfer "from" "to" 1.0) you must sign with the keys assosciated with the transfering account, but to do an account info call such as (coin.details "nick-cage"), you can sign with a dummy key pair as there are no capabilities assosciated with this transaction</Popup.Content>
                     </Popup>
                   </label>}
                 name='radioGroup'
@@ -526,7 +526,7 @@ import Pact from 'pact-lang-api'
                       style={{width: "440px"}}
                     >
                       <Popup.Header>What is a Signature?</Popup.Header>
-                      <Popup.Content>This is a safe way to sign your transaction offline without pasting your private on the web. Once you fill in all the parameters for your desired trasaction you will be provided a hash that you can copy and sign offline with the Chainweaver wallet or pact cli. You must sign with the corresponding private key of the public key provided.</Popup.Content>
+                      <Popup.Content>This is a safe way to sign your transaction offline without pasting your private key on the web. Once you fill in all the parameters for your desired trasaction you will be provided a hash that you can copy and sign offline with the Chainweaver wallet or pact cli. You must sign with the corresponding private key of the public key provided.</Popup.Content>
                     </Popup>
                   </label>}
                   name='radioGroup'
@@ -828,7 +828,7 @@ import Pact from 'pact-lang-api'
                   position='top center'
                 >
                   <Popup.Header>What is Gas price? </Popup.Header>
-                  <Popup.Content>Gas Price is the amount you are willing to pay for each unit of computation on chain. Note that transactions are odered by miners based on this price, so if you want your transaction to be included in the next block be generous!! Minimum amount is 1e-12, defauly is 1e-6</Popup.Content>
+                  <Popup.Content>Gas Price is the amount you are willing to pay for each unit of computation on chain. Note that transactions are ordered by miners based on this price, so if you want your transaction to be included in the next block be generous!! Default is 1e-6</Popup.Content>
                 </Popup>
               </label>
               <Form.Input
