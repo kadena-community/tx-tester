@@ -21,7 +21,7 @@ const CmdTabs = (props) => {
           <Message.Header style={{marginBottom: 10, marginTop: 10}}>
             API Host
           </Message.Header>
-          <code style={{wordBreak: "break-all"}}>{(props.host === `https://${props.server}/chainweb/0.0/${props.ver}/chain//pact` ?  "Select Chain Id" : (props.ver === "not a chainweb node") ? "Select a valid Chainweb node" : props.host + "/api/v1/local")}</code>
+          <code style={{wordBreak: "break-all"}}>{(props.host === `https://${props.server}/chainweb/0.0/${props.ver}/chain//pact` ?  "<Select Chain Id>" : (props.ver === "not a chainweb node") ? "<Select a valid Chainweb node>" : props.host + "/api/v1/local")}</code>
         </Message>
       </div>
     </div>
@@ -35,7 +35,7 @@ const CmdTabs = (props) => {
         <div style={{marginBottom: 5}}>
         </div>
         <code style={{wordBreak: "break-all", color: "black", fontSize: 15, marginBottom: 20, fontWeight: "bold"}}>
-          {`curl -sk -H \"Content-Type: application/json\" -d '${props.cmd}' -X POST ${(props.host === `https://${props.server}/chainweb/0.0/${props.ver}/chain//pact` ?  "Select Chain Id" : (props.ver === "not a chainweb node") ? "Select a valid Chainweb node" : props.host + "/api/v1/local")}`}
+          {`curl -sk -H \"Content-Type: application/json\" -d '${props.cmd}' -X POST ${(props.host === `https://${props.server}/chainweb/0.0/${props.ver}/chain//pact` ?  "<Select Chain Id>" : (props.ver === "not a chainweb node") ? "<Select a valid Chainweb node>" : props.host + "/api/v1/local")}`}
         </code>
       </Message>
     </div>
@@ -66,7 +66,7 @@ const CmdTabs = (props) => {
           API Host
         </Message.Header>
         <div style={{margin: 20, marginBottom: 0}}>
-          <code style={{wordBreak: "break-all"}}>{(props.host === `https://${props.server}/chainweb/0.0/${props.ver}/chain//pact` ?  "Select Chain Id" : (props.ver === "not a chainweb node") ? "Select a valid Chainweb node" : props.host + "/api/v1/local")}</code>
+          <code style={{wordBreak: "break-all"}}>{(props.host === `https://${props.server}/chainweb/0.0/${props.ver}/chain//pact` ?  "<Select Chain Id>" : (props.ver === "not a chainweb node") ? "<Select a valid Chainweb node>" : props.host + "/api/v1/local")}</code>
         </div>
       </Message>
     </div>

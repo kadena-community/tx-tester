@@ -411,9 +411,9 @@ import Pact from 'pact-lang-api'
                 }}
               loading={sendLoading}
               onClick={() => sendCall()}
-              disabled={(txPending || !canSend)}
+              disabled={(txPending || !canSend || !checkKey(pubKey) || acct === "")}
             >
-            {(canSend ? "Send Transaction" : "Please Preview Again")}
+            {(canSend ? (checkKey(pubKey) ? "Send Transaction" : "Sign TX to Send") : "Please Preview Again")}
           </Button>
           {(showSendTab ? <Tab panes={reqKeyTabs} style={{marginBottom: 350}}/> : <div></div>)}
         </div>
@@ -691,12 +691,19 @@ import Pact from 'pact-lang-api'
                 placeholder='(coin.TRANSFER "from" "to" 1.0)'
                 icon="code"
                 iconPosition="left"
-                style={{width: "440px", marginTop: 5}}
+                style={{width: "440px", marginTop: 5, color: (isValidCap(tempCap) && tempCap !== "" ? "red" : "black")}}
                 value={tempCap}
-                onChange={(e) => setTempCap(e.target.value)}
-                onClose={(e, {value }) => {
-                  console.log('closed')
+                onKeyDown={(e) => {
+                  if (e.keyCode === 13 || e.keyCode === 9 ) {
+                    console.log(tempCap)
+                    if (!isValidCap(tempCap)) {
+                      console.log('here')
+                      setCaps([...caps, tempCap])
+                      setTempCap("")
+                    }
+                  }
                 }}
+                onChange={(e) => setTempCap(e.target.value)}
                 action={
                    <Button
                    icon="add"
@@ -712,6 +719,25 @@ import Pact from 'pact-lang-api'
             <Header as="h6" style={{color:'white', fontWeight: 'bold', fontSize: 30, marginTop: 30,textAlign: 'center'}}>
               Network
             </Header>
+            <Form.Field style={{width:"440px", margin: "0 auto", marginTop: "10px"}}>
+              <label style={{color: "white"}}>Chain ID
+                <Popup
+                  trigger={
+                    <Icon name='help circle' style={{"marginLeft": "2px"}}/>
+                  }
+                  position='top center'
+                >
+                  <Popup.Header>What is Chain ID? </Popup.Header>
+                  <Popup.Content>Chain ID is the specific chain within chainweb you are targeting with your transaction. For more info look at: <a>https://www.youtube.com/watch?v=hYvXxFbsN6I</a> </Popup.Content>
+                </Popup>
+              </label>
+              <Select
+                style={{width:"440px"}}
+                placeholder='Chain ID'
+                options={chainIds}
+                onChange={(e, { value }) => setChainId(value)}
+              />
+            </Form.Field>
             <Form.Field style={{width:"440px", margin: "0 auto", marginTop: "10px"}}>
               <label style={{color: "white"}}>Server
                 <Popup
@@ -769,6 +795,7 @@ import Pact from 'pact-lang-api'
                 iconPosition='left'
                 placeholder='Version'
                 value={ver}
+                disabled
                 // onChange={(e) => setVer(e.target.value)}
               />
             </Form.Field>
@@ -787,11 +814,13 @@ import Pact from 'pact-lang-api'
                   <Popup.Content>Chain ID is the specific chain within chainweb you are targeting with your transaction. For more info look at: <a>https://www.youtube.com/watch?v=hYvXxFbsN6I</a> </Popup.Content>
                 </Popup>
               </label>
-              <Select
+              <Form.Input
                 style={{width:"440px"}}
+                icon='paper plane'
+                iconPosition='left'
                 placeholder='Chain ID'
-                options={chainIds}
-                onChange={(e, { value }) => setChainId(value)}
+                disabled
+                value={chainId}
               />
             </Form.Field>
             <Form.Field style={{width:"440px", margin: "0 auto", marginTop: "10px"}}>
@@ -811,6 +840,7 @@ import Pact from 'pact-lang-api'
                 icon='user'
                 iconPosition='left'
                 placeholder='Sender'
+                disabled
                 value={acct}
                 // onChange={(e) => setCreationTime((!isNaN(parseFloat(e.target.value)) ? parseFloat(e.target.value) : ""))}
               />
@@ -948,7 +978,7 @@ import Pact from 'pact-lang-api'
               />
             </Form.Field>
             <Form.Field style={{width:"440px", margin: "0 auto", marginTop: "10px"}}>
-                <label>Public Key
+                <label style={{color: "white"}}>Public Key
                   <Popup
                     trigger={
                       <Icon name='help circle' style={{"marginLeft": "2px"}}/>
@@ -989,6 +1019,14 @@ import Pact from 'pact-lang-api'
                   value={tempKey}
                   // onChange={(e) => setEnvKeys([...envKeys, e.target.value])}
                   onChange={(e) => setTempKey(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.keyCode === 13 || e.keyCode === 9 ) {
+                      if (is_hexadecimal(tempKey) && checkKey(tempKey)) {
+                        setEnvKeys([...envKeys, tempKey])
+                        setTempKey("")
+                      }
+                    }
+                  }}
                   action={
                      <Button
                      icon="add"
