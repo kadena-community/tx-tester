@@ -875,7 +875,7 @@ import Pact from 'pact-lang-api'
                   position='top center'
                 >
                   <Popup.Header>What is TTL? </Popup.Header>
-                  <Popup.Content>Time to Live for a transaction. Your transaction will stay in the mempool for the specified internal between creation time and time to live (in seconds)</Popup.Content>
+                  <Popup.Content>Time to Live for a transaction. Your transaction will stay in the mempool for the specified interval between creation time and time to live (in seconds)</Popup.Content>
                 </Popup>
               </label>
               <Form.Input
