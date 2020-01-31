@@ -92,7 +92,6 @@ import Pact from 'pact-lang-api'
       caps.map((cap, i) => {
         cap = cap.replace("(", "").replace(")", "")
         var strs = cap.split(" ");
-        console.log(strs)
         arr.push({name: strs.shift(), args: strs.map((str) => isNaN(str) ? str.replace("\"", "").replace("\"", "") : (str.includes(".") ? parseFloat(str) : `{\"int\": ${str}}`))})
       })
       return arr;
