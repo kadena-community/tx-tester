@@ -105,7 +105,7 @@ const ViewYaml = (props) => {
                 </div>
                 <div style={{textAlign: "left"}}>
                   <code style={{wordBreak: "break-all", whiteSpace: "pre"}}>
-                    {"        args: [" + strs.map((str) => isNaN(str) ? str : parseFloat(str)) + "]"}
+                    {"        args: [" + strs.map((str) => isNaN(str) ? str : (str.includes(".") ? parseFloat(str) : `{\"int\": ${str}}`)) + "]"}
                   </code>
                 </div>
               </div>
