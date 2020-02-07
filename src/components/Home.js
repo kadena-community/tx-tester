@@ -92,7 +92,8 @@ import Pact from 'pact-lang-api'
       caps.map((cap, i) => {
         cap = cap.replace("(", "").replace(")", "")
         var strs = cap.split(" ");
-        arr.push({name: strs.shift(), args: strs.map((str) => isNaN(str) ? str.replace("\"", "").replace("\"", "") : (str.includes(".") ? parseFloat(str) : `{\"int\": ${str}}`))})
+        // arr.push({name: strs.shift(), args: strs.map((str) => isNaN(str) ? str.replace("\"", "").replace("\"", "") : (str.includes(".") ? parseFloat(str) : `{\"int\": ${str}}`))})
+        arr.push({name: strs.shift(), args: strs.map((str) => isNaN(str) ? str.replace("\"", "").replace("\"", "") : (str.includes(".") ? parseFloat(str) : {int: str} ))})
       })
       return arr;
     }
@@ -636,7 +637,13 @@ import Pact from 'pact-lang-api'
                     disabled={(chainId === "" || pactCode === "" || pubKey === "")}
                     // disabled={hash === ""}
                     style={{marginLeft: 5, marginTop: 0}}
-                    onClick={(e) => navigator.clipboard.writeText(JSON.parse(cmd).hash)}/>
+                    onClick={(e) => {
+                      try {
+                        navigator.clipboard.writeText(JSON.parse(cmd).hash)
+                      } catch (e) {
+                        console.log("can't copy without https")
+                      }
+                    }}/>
                 </Message.Header>
                 <p style={{wordBreak: "break-all"}}>{(chainId === "" || pactCode === "" || pubKey === "") ? "please fill in all parameters first" : (checkKey(pubKey) ? JSON.parse(cmd).hash : "enter a valid public key")}</p>
               </Message>
