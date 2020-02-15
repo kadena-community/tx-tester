@@ -32,6 +32,7 @@ import Pact from 'pact-lang-api'
    const [ksName, setKsName] = useState("");
    const [res, setRes] = useState("");
    const [mess, setMess] = useState("")
+   const [gas, setGas] = useState("");
    const [loading, setLoading] = useState(false);
    const [sendLoading, setSendLoading] = useState(false);
    const [cmd, setCmd] = useState("");
@@ -254,9 +255,12 @@ import Pact from 'pact-lang-api'
           if (res.result.status === "failure") {
             setRes("TX preview failed:")
             setMess(res.result.error.message)
+            setGas("")
           } else {
             setRes("TX preview suceeded:")
-            setMess(JSON.stringify(res.result.data))
+            console.log(res.gas)
+            setMess("Result: " + JSON.stringify(res.result.data))
+            setGas(res.gas * parseFloat(gasPrice))
             setCanSend(true);
           }
         } catch (e) {
@@ -264,14 +268,18 @@ import Pact from 'pact-lang-api'
           setRes("CHECK YOUR INPUTS")
           if (pactCode === "") {
             setMess("Enter some Pact code")
+            setGas("")
           }
           else if (chainId === "") {
             setMess("Set Chain ID")
+            setGas("")
           } else {
             if (e.message === "Unexpected token V in JSON at position 0") {
               setMess("Make sure you signed after you filled in the rest of the transaction details")
+              setGas("")
             } else {
               setMess(e.message)
+              setGas("")
             }
           }
         }
@@ -472,7 +480,10 @@ import Pact from 'pact-lang-api'
                     {res}
                   </Message.Header>
                   <div>
-                    <p style={{wordBreak: "break-all"}}>{"Result: " + mess}</p>
+                    <p style={{wordBreak: "break-all"}}>{mess}</p>
+                  </div>
+                  <div>
+                    <p style={{wordBreak: "break-all"}}>{(gas === "" ? "" : "Gas Cost: " + gas)}</p>
                   </div>
                 </Message>
               </div>
