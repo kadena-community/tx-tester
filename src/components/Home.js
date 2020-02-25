@@ -420,9 +420,9 @@ import Pact from 'pact-lang-api'
                 }}
               loading={sendLoading}
               onClick={() => sendCall()}
-              disabled={(txPending || !canSend || !checkKey(pubKey) || acct === "")}
+              disabled={(txPending || !canSend || acct === "")}
             >
-            {(canSend ? (checkKey(pubKey) ? "Send Transaction" : "Sign TX to Send") : "Please Preview Again")}
+            {(canSend ? (checkKey(pubKey) ? "Send Transaction" : "Send Unsigned TX") : "Please Preview Again")}
           </Button>
           {(showSendTab ? <Tab panes={reqKeyTabs} style={{marginBottom: 350}}/> : <div></div>)}
         </div>
