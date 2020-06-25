@@ -287,7 +287,7 @@ import Pact from 'pact-lang-api'
 
       const sendCall = async () => {
         setCanSend(false);
-        try {
+        // try {
           setRkWarn(false);
           setSendLoading(true);
           setShowSendTab(true);
@@ -297,17 +297,28 @@ import Pact from 'pact-lang-api'
             "cmds": [ parsedCmd ]
           }
           const txRes = await fetch(`${host}/api/v1/send`, mkReq(sendCmd));
-          const reqKey = await txRes.json();
-          setReqKey(reqKey.requestKeys[0]);
-          setSendLoading(false);
-          setTxPending(true)
-          pollCall(reqKey.requestKeys[0]);
-        } catch(e) {
-          console.log(e)
-          setSendLoading(false);
-          setReqKey("Your requested transaction's inputs failed to validate. If your preview is succeeding and you are seeing this message it is because SEND TRANSACTIONS MUST BE SIGNED")
-          setRkWarn(true)
-        }
+          console.log(txRes)
+          const text = await txRes.text();
+          console.log(text)
+          if (text.substring(0, 10) === 'Validation') {
+              setSendLoading(false);
+              setReqKey(text)
+              setRkWarn(true)
+          } else {
+            const reqKey = JSON.parse(text)
+            setReqKey(reqKey.requestKeys[0]);
+            setSendLoading(false);
+            setTxPending(true)
+            pollCall(reqKey.requestKeys[0]);
+          }
+
+        // } catch(e) {
+        //   console.log(e)
+        //   console.log(e.msg)
+        //   setSendLoading(false);
+        //   setReqKey("Your requested transaction's inputs failed to validate. If your preview is succeeding and you are seeing this message it is because SEND TRANSACTIONS MUST BE SIGNED")
+        //   setRkWarn(true)
+        // }
       }
 
       const pollCall = async (rk) => {
@@ -600,6 +611,7 @@ import Pact from 'pact-lang-api'
                 placeholder='Private Key'
                 icon="lock"
                 iconPosition="left"
+                type='password'
                 style={{marginTop: 5, width: "440px"}}
                 value={privKey}
                 onChange={(e) => setPrivKey(e.target.value)}
