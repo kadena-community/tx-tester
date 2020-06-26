@@ -287,7 +287,7 @@ import Pact from 'pact-lang-api'
 
       const sendCall = async () => {
         setCanSend(false);
-        // try {
+        try {
           setRkWarn(false);
           setSendLoading(true);
           setShowSendTab(true);
@@ -312,13 +312,13 @@ import Pact from 'pact-lang-api'
             pollCall(reqKey.requestKeys[0]);
           }
 
-        // } catch(e) {
-        //   console.log(e)
-        //   console.log(e.msg)
-        //   setSendLoading(false);
-        //   setReqKey("Your requested transaction's inputs failed to validate. If your preview is succeeding and you are seeing this message it is because SEND TRANSACTIONS MUST BE SIGNED")
-        //   setRkWarn(true)
-        // }
+        } catch(e) {
+          console.log(e)
+          console.log(e.msg)
+          setSendLoading(false);
+          setReqKey("Your requested transaction's inputs failed to validate. If your preview is succeeding and you are seeing this message it is because SEND TRANSACTIONS MUST BE SIGNED")
+          setRkWarn(true)
+        }
       }
 
       const pollCall = async (rk) => {
@@ -611,7 +611,7 @@ import Pact from 'pact-lang-api'
                 placeholder='Private Key'
                 icon="lock"
                 iconPosition="left"
-                type='password'
+                // type='password'
                 style={{marginTop: 5, width: "440px"}}
                 value={privKey}
                 onChange={(e) => setPrivKey(e.target.value)}
