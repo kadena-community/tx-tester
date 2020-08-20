@@ -195,6 +195,16 @@ import Pact from 'pact-lang-api'
       { key: '7', value: '7', text: '7' },
       { key: '8', value: '8', text: '8' },
       { key: '9', value: '9', text: '9' },
+      { key: '10', value: '10', text: '10' },
+      { key: '11', value: '11', text: '11' },
+      { key: '12', value: '12', text: '12' },
+      { key: '13', value: '13', text: '13' },
+      { key: '14', value: '14', text: '14' },
+      { key: '15', value: '15', text: '15' },
+      { key: '16', value: '16', text: '16' },
+      { key: '17', value: '17', text: '17' },
+      { key: '18', value: '18', text: '18' },
+      { key: '19', value: '19', text: '19' },
     ]
 
     const preds = [
