@@ -15,7 +15,7 @@ import Pact from 'pact-lang-api'
    const [sig, setSig] = useState("sig");
    const [sigText, setSigText] = useState("")
    const [tempCap, setTempCap] = useState("");
-   const [server, setServer] = useState("us-e1.chainweb.com");
+   const [server, setServer] = useState("api.testnet.chainweb.com");
    const [ver, setVer] = useState("mainnet01");
    const [acct, setAcct] = useState("");
    const [pactCode, setPactCode] = useState("");
@@ -45,31 +45,11 @@ import Pact from 'pact-lang-api'
    const [showSendTab, setShowSendTab] = useState(false);
    const [bootstraps, setBootstraps] = useState(
      (savedNodes === null ? [
-        { key: '0', value: 'us-e1.chainweb.com', text: 'us-e1.chainweb.com' },
-        { key: '1', value: 'us-e2.chainweb.com', text: 'us-e2.chainweb.com' },
-        { key: '2', value: 'us-e3.chainweb.com', text: 'us-e3.chainweb.com' },
-        { key: '3', value: 'us-w1.chainweb.com', text: 'us-w1.chainweb.com' },
-        { key: '4', value: 'us-w2.chainweb.com', text: 'us-w2.chainweb.com' },
-        { key: '5', value: 'us-w3.chainweb.com', text: 'us-w3.chainweb.com' },
-        { key: '6', value: 'fr1.chainweb.com', text: 'fr1.chainweb.com' },
-        { key: '7', value: 'fr2.chainweb.com', text: 'fr2.chainweb.com' },
-        { key: '8', value: 'fr3.chainweb.com', text: 'fr3.chainweb.com' },
-        { key: '9', value: 'jp1.chainweb.com', text: 'jp1.chainweb.com' },
-        { key: '10', value: 'jp2.chainweb.com', text: 'jp2.chainweb.com' },
-        { key: '11', value: 'jp3.chainweb.com', text: 'jp3.chainweb.com' },
+        { key: '0', value: 'api.testnet.chainweb.com', text: 'api.testnet.chainweb.com' },
+        { key: '1', value: 'api.chainweb.com', text: 'api.chainweb.com' }
       ] : [
-         { key: '0', value: 'us-e1.chainweb.com', text: 'us-e1.chainweb.com' },
-         { key: '1', value: 'us-e2.chainweb.com', text: 'us-e2.chainweb.com' },
-         { key: '2', value: 'us-e3.chainweb.com', text: 'us-e3.chainweb.com' },
-         { key: '3', value: 'us-w1.chainweb.com', text: 'us-w1.chainweb.com' },
-         { key: '4', value: 'us-w2.chainweb.com', text: 'us-w2.chainweb.com' },
-         { key: '5', value: 'us-w3.chainweb.com', text: 'us-w3.chainweb.com' },
-         { key: '6', value: 'fr1.chainweb.com', text: 'fr1.chainweb.com' },
-         { key: '7', value: 'fr2.chainweb.com', text: 'fr2.chainweb.com' },
-         { key: '8', value: 'fr3.chainweb.com', text: 'fr3.chainweb.com' },
-         { key: '9', value: 'jp1.chainweb.com', text: 'jp1.chainweb.com' },
-         { key: '10', value: 'jp2.chainweb.com', text: 'jp2.chainweb.com' },
-         { key: '11', value: 'jp3.chainweb.com', text: 'jp3.chainweb.com' },
+         { key: '0', value: 'api.testnet.chainweb.com', text: 'api.testnet.chainweb.com' },
+         { key: '1', value: 'api.chainweb.com', text: 'api.chainweb.com' },
        ].concat(JSON.parse(savedNodes)))
    );
    useEffect(() => {
