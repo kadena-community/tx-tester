@@ -16,7 +16,7 @@ import Pact from 'pact-lang-api'
    const [sigText, setSigText] = useState("")
    const [tempCap, setTempCap] = useState("");
    const [server, setServer] = useState("api.testnet.chainweb.com");
-   const [ver, setVer] = useState("mainnet01");
+   const [ver, setVer] = useState("testnet04");
    const [acct, setAcct] = useState("");
    const [pactCode, setPactCode] = useState("");
    const [pubKey, setPubKey] = useState("");
