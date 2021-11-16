@@ -94,7 +94,7 @@ import Pact from 'pact-lang-api'
   const showCmd = () => {
     try {
       const cmdJSON = Pact.api.prepareExecCmd(
-        [{publicKey: pubKey, secretKey: privKey, clist: formatCaps(caps)}],
+        pubKey ? [{publicKey: pubKey, secretKey: privKey, clist: formatCaps(caps)}] : [],
         creationTime.toString(),
         pactCode.replace("\n", ""),
         ksName !== "" ? {[ksName]: {"pred": pred, "keys": envKeys}} : {},
@@ -104,6 +104,7 @@ import Pact from 'pact-lang-api'
       if (sig === "sig" && cmdJSON.sigs[0]) {
         cmdJSON.sigs[0].sig = sigText
       }
+
       return JSON.stringify(cmdJSON)
   } catch(e){
       return e.message
