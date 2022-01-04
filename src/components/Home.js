@@ -101,8 +101,8 @@ import Pact from 'pact-lang-api'
         Pact.lang.mkMeta(acct, chainId, gasPrice, gasLimit, creationTime, ttl),
         ver
       )
-      if (sig === "sig" && cmdJSON.sigs[0]) {
-        cmdJSON.sigs[0].sig = sigText
+      if (sig === "sig") {
+        cmdJSON.sigs[0] = {"sig": sigText}
       }
 
       return JSON.stringify(cmdJSON)
